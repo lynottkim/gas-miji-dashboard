@@ -1,103 +1,82 @@
 <!DOCTYPE html>
+<!-- 미지세계 매출 분석 대시보드 — help.html v6.2 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>미지세계 매출 대시보드 — 사용 가이드</title>
+<title>영업 대시보드 — 사용 가이드</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --blue:#2563eb;--text:#1e293b;--muted:#64748b;--bd:#e2e8f0;
   --bg:#f8fafc;--panel:#fff;--green:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --font-num:'JetBrains Mono','Noto Sans KR',monospace;
+  --font-ui:'Noto Sans KR',sans-serif;
 }
-body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',sans-serif;
-     background:var(--bg);color:var(--text);font-size:14px;line-height:1.7}
-header{background:var(--blue);color:#fff;padding:20px 40px;
-       display:flex;align-items:center;gap:16px}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--text);font-size:14px;line-height:1.7}
+header{background:var(--blue);color:#fff;padding:20px 40px;display:flex;align-items:center;gap:16px}
 header h1{font-size:20px;font-weight:700}
 header span{font-size:13px;opacity:.8}
 .container{max-width:900px;margin:0 auto;padding:32px 24px}
-h2{font-size:17px;font-weight:700;color:var(--blue);margin:32px 0 12px;
-   padding-bottom:8px;border-bottom:2px solid var(--bd)}
+h2{font-size:17px;font-weight:700;color:var(--blue);margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--bd)}
 h3{font-size:14px;font-weight:700;color:var(--text);margin:20px 0 8px}
 p{color:var(--muted);margin-bottom:10px}
-code{background:#f1f5f9;border:1px solid var(--bd);border-radius:4px;
-     padding:1px 6px;font-family:'Courier New',monospace;font-size:12px;color:var(--blue)}
-
-/* 섹션 카드 */
-.section{background:var(--panel);border:1px solid var(--bd);border-radius:8px;
-         padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-
-/* 지표 테이블 */
-.tbl{width:100%;border-collapse:collapse;margin:10px 0}
-.tbl th{background:#f1f5f9;padding:8px 12px;text-align:left;font-size:12px;
-        font-weight:700;color:var(--muted);border-bottom:2px solid var(--bd)}
+code{background:#f1f5f9;border:1px solid var(--bd);padding:1px 6px;font-family:var(--font-num);font-size:12px;color:var(--blue)}
+.section{background:var(--panel);border:1px solid var(--bd);padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tbl{width:100%;border-collapse:collapse;margin:10px 0;font-family:var(--font-ui)}
+.tbl th{background:#f1f5f9;padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--bd)}
 .tbl td{padding:8px 12px;border-bottom:1px solid var(--bd);font-size:13px;vertical-align:top}
 .tbl tr:last-child td{border-bottom:none}
 .tbl td:first-child{font-weight:600;white-space:nowrap;color:var(--text)}
-.tbl td:nth-child(2){color:var(--blue);font-family:'Courier New',monospace;font-size:12px}
+.tbl td:nth-child(2){color:var(--blue);font-family:var(--font-num);font-size:12px}
 .tbl td:nth-child(3){color:var(--muted)}
-
-/* 수식 박스 */
-.formula{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;
-         padding:12px 16px;margin:10px 0;font-family:'Courier New',monospace;font-size:13px;color:#1d4ed8}
-.formula .label{font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;font-family:sans-serif}
-
-/* 알림 박스 */
-.note{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;
-      padding:10px 14px;margin:10px 0;font-size:13px;color:#92400e}
+.formula{background:#eff6ff;border:1px solid #bfdbfe;padding:12px 16px;margin:10px 0;font-family:var(--font-num);font-size:13px;color:#1d4ed8}
+.formula .label{font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;font-family:var(--font-ui)}
+.note{background:#fffbeb;border:1px solid #fde68a;padding:10px 14px;margin:10px 0;font-size:13px;color:#92400e}
 .note::before{content:'💡 ';font-weight:700}
-.info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;
-      padding:10px 14px;margin:10px 0;font-size:13px;color:#1e40af}
+.info{background:#eff6ff;border:1px solid #bfdbfe;padding:10px 14px;margin:10px 0;font-size:13px;color:#1e40af}
 .info::before{content:'ℹ️ '}
-.warn{background:#fef2f2;border:1px solid #fecaca;border-radius:6px;
-      padding:10px 14px;margin:10px 0;font-size:13px;color:#b91c1c}
+.warn{background:#fef2f2;border:1px solid #fecaca;padding:10px 14px;margin:10px 0;font-size:13px;color:#b91c1c}
 .warn::before{content:'⚠️ '}
-
-/* 흐름도 */
 .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
-.flow-step{background:var(--blue);color:#fff;border-radius:6px;
-           padding:6px 12px;font-size:12px;font-weight:600}
+.flow-step{background:var(--blue);color:#fff;padding:6px 12px;font-size:12px;font-weight:600}
 .flow-arrow{color:var(--muted);font-size:18px}
-
-/* 배지 */
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge{display:inline-block;padding:2px 8px;font-size:11px;font-weight:600}
 .b-green{background:#dcfce7;color:#15803d}
 .b-amber{background:#fef9c3;color:#854d0e}
 .b-red{background:#fee2e2;color:#b91c1c}
 .b-blue{background:#eff6ff;color:#1d4ed8}
-.b-purple{background:#f5f3ff;color:#6d28d9}
-
-/* 목차 */
-#toc{background:var(--panel);border:1px solid var(--bd);border-radius:8px;
-     padding:16px 20px;margin-bottom:24px}
+#toc{background:var(--panel);border:1px solid var(--bd);padding:16px 20px;margin-bottom:24px}
 #toc h3{margin:0 0 10px;font-size:13px;color:var(--muted)}
-#toc a{display:block;color:var(--blue);text-decoration:none;font-size:13px;
-       padding:2px 0;border-bottom:1px dashed var(--bd)}
+#toc a{display:block;color:var(--blue);text-decoration:none;font-size:13px;padding:2px 0;border-bottom:1px dashed var(--bd)}
 #toc a:hover{text-decoration:underline}
-
+.yr-demo{display:inline-flex;gap:4px;margin:4px 0}
+.yr-b{padding:3px 10px;border:1px solid;font-size:11px;font-weight:500}
+.yr-pending{background:#f59e0b;color:#fff;border-color:#d97706}
+.yr-on{background:#2563eb;color:#fff;border-color:#2563eb}
+.yr-off{background:#f8fafc;color:#64748b;border-color:#e2e8f0}
 ::-webkit-scrollbar{width:6px}
-::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+::-webkit-scrollbar-thumb{background:#cbd5e1}
 </style>
 </head>
 <body>
 
 <header>
   <div>
-    <h1>📊 미지세계 매출 대시보드</h1>
-    <span>사용자 가이드 — v4</span>
+    <h1>📊 미지세계 영업 대시보드</h1>
+    <span>사용자 가이드 — v6.2</span>
   </div>
 </header>
 
 <div class="container">
 
-  <!-- 목차 -->
   <div id="toc">
     <h3>목차</h3>
     <a href="#sec-overview">1. 대시보드 개요</a>
-    <a href="#sec-filter">2. 필터 패널 사용법</a>
+    <a href="#sec-filter">2. 필터 패널</a>
     <a href="#sec-cards">3. 요약 지표 카드</a>
-    <a href="#sec-chart">4. 차트 설명</a>
+    <a href="#sec-chart">4. 차트</a>
     <a href="#sec-table">5. 상세 집계 테이블</a>
     <a href="#sec-forecast">6. 발주 예측</a>
     <a href="#sec-category">7. 카테고리 & 태그 구조</a>
@@ -107,165 +86,164 @@ code{background:#f1f5f9;border:1px solid var(--bd);border-radius:4px;
   <!-- 1. 개요 -->
   <div class="section" id="sec-overview">
     <h2>1. 대시보드 개요</h2>
-    <p>미지세계 매출 대시보드는 구글 시트의 판매 원장 데이터를 실시간으로 읽어 분석합니다. 필터 조건을 자유롭게 조합하여 원하는 기간·제품·거래처의 매출을 즉시 확인할 수 있습니다.</p>
+    <p>구글 시트의 판매 원장 데이터를 읽어 브랜드·제품·기간·거래처별 매출을 즉시 분석합니다. SENA 전용 배포와 멀티브랜드(MGD) 배포로 나뉘며, <code>DEPLOY_MODE</code> 한 줄로 전환됩니다.</p>
 
     <h3>기본 사용 흐름</h3>
     <div class="flow">
-      <div class="flow-step">① 기간 선택</div><span class="flow-arrow">→</span>
-      <div class="flow-step">② 연도 선택</div><span class="flow-arrow">→</span>
-      <div class="flow-step">③ 카테고리/SKU 선택</div><span class="flow-arrow">→</span>
-      <div class="flow-step">④ 조회 클릭</div><span class="flow-arrow">→</span>
-      <div class="flow-step">⑤ 결과 확인</div>
+      <div class="flow-step">① 연도 선택 + 적용</div><span class="flow-arrow">→</span>
+      <div class="flow-step">② 기간·필터 설정</div><span class="flow-arrow">→</span>
+      <div class="flow-step">③ 조회</div><span class="flow-arrow">→</span>
+      <div class="flow-step">④ 차트·테이블 분석</div>
     </div>
-
-    <div class="info">연도는 기본으로 현재 연도가 선택됩니다. 초기화 후에도 현재 연도는 유지됩니다.</div>
+    <div class="info">연도는 기본으로 현재 연도가 선택됩니다. 멀티브랜드 배포에서는 브랜드를 먼저 선택해야 조회가 가능합니다.</div>
 
     <h3>데이터 구조</h3>
     <table class="tbl">
       <tr><th>항목</th><th>내용</th></tr>
-      <tr><td>데이터 소스</td><td>Google Sheets — salesrecordYYYY 탭 (연도별)</td></tr>
+      <tr><td>데이터 소스</td><td>Google Sheets — salesrecordYYYY 탭 (연도별 분리)</td></tr>
       <tr><td>매출액 기준</td><td>공급가액 (부가세 제외)</td></tr>
-      <tr><td>수량 기준</td><td>순판매수량 = 출고수량 − 반품수량</td></tr>
-      <tr><td>추출일</td><td>각 탭 마지막 행의 <code>D26.05.18.월 14:55:09</code> 형식 자동 감지</td></tr>
+      <tr><td>수량 기준</td><td>순판매수량 = 출고수량 − |반품수량|</td></tr>
+      <tr><td>분류 기준</td><td>CATEGORY_MAP 탭 (SKU → 주카테고리 · 시리즈 · 태그 매핑)</td></tr>
     </table>
   </div>
 
   <!-- 2. 필터 -->
   <div class="section" id="sec-filter">
-    <h2>2. 필터 패널 사용법</h2>
+    <h2>2. 필터 패널</h2>
 
-    <h3>📅 기간</h3>
-    <p>월 버튼(1~12월), 분기(1Q~4Q), 상/하반기, 전체 중 선택하거나 직접 날짜 범위를 입력합니다. 월 버튼과 날짜 범위는 동시에 사용할 수 없습니다.</p>
+    <h3>브랜드 (멀티브랜드 배포 전용)</h3>
+    <p>KLIM · SCHUBERTH · TOURATECH · BARKBUSTERS 등 브랜드를 복수 선택합니다. <strong>미선택 상태에서는 조회 결과가 없습니다.</strong> 선택된 브랜드에 속한 SKU만 아래 주카테고리·태그·SKU 목록에 표시됩니다.</p>
 
-    <h3>📅 연도</h3>
-    <p>복수 선택 가능합니다. 여러 연도를 선택하면 합산하여 조회합니다. 전체 연도를 조회하면 시간이 오래 걸릴 수 있습니다.</p>
+    <h3>기간</h3>
+    <p>단위를 기준으로 선택이 동작합니다. <strong>다른 단위를 선택하면 이전 단위의 선택은 자동으로 초기화됩니다.</strong></p>
+    <table class="tbl">
+      <tr><th>단위</th><th>버튼</th><th>동작</th></tr>
+      <tr><td>월 단위</td><td>1월 ~ 12월</td><td>복수 선택 가능 (예: 3월+4월+5월)</td></tr>
+      <tr><td>분기 단위</td><td>1Q ~ 4Q</td><td>복수 선택 가능. 선택 시 월 선택 초기화</td></tr>
+      <tr><td>반기 단위</td><td>상반기 / 하반기</td><td>분기 선택 초기화</td></tr>
+      <tr><td>전체</td><td>연간 / 전체</td><td>해당 연도 전체</td></tr>
+    </table>
+    <div class="info">날짜 직접 입력(시작~종료)을 사용하면 연속 날짜 범위로 정확히 조회됩니다. 날짜 입력 시 버튼 선택은 초기화됩니다.</div>
+
+    <h3>연도</h3>
+    <p>버튼을 클릭해 연도를 선택하고 <strong>✓ 적용</strong> 버튼을 눌러 확정합니다.</p>
+    <div class="yr-demo">
+      <span class="yr-b yr-on">2025</span>
+      <span class="yr-b yr-pending">2026</span>
+      <span class="yr-b yr-off">2024</span>
+    </div>
+    <table class="tbl" style="margin-top:8px">
+      <tr><th>버튼 색상</th><th>의미</th></tr>
+      <tr><td style="color:#2563eb;font-weight:700">파란색</td><td>적용 완료 — 데이터 로드됨</td></tr>
+      <tr><td style="color:#f59e0b;font-weight:700">주황색</td><td>선택됨, 미적용 — 적용 버튼을 눌러야 반영</td></tr>
+      <tr><td>기본(회색 테두리)</td><td>미선택</td></tr>
+    </table>
+    <p>새 연도를 처음 추가할 때만 서버에서 데이터를 로드합니다. 로드 중에는 <strong>조회 버튼이 비활성화</strong>되어 완료 후 조회하도록 안내합니다.</p>
+
+    <table class="tbl" style="margin-top:8px">
+      <tr><th>선택 연도 수</th><th>타임컬럼 단위</th><th>라벨 형태</th></tr>
+      <tr><td>1개년</td><td>월별</td><td><code>2501 2502 … 2512</code></td></tr>
+      <tr><td>2개년</td><td>월별 (가로 스크롤)</td><td><code>2501 … 2512 | 2601 … 2612</code></td></tr>
+      <tr><td>3~4개년</td><td>분기별</td><td><code>22Q1 22Q2 … 24Q4</code></td></tr>
+      <tr><td>5개년 이상</td><td>연간</td><td><code>2020년 2021년 …</code></td></tr>
+    </table>
+    <div class="note">기간 프리셋과 조합: 2023+2024 선택 + 4Q → 두 해의 10·11·12월만 표시. 연도 간 경계에는 파란 구분선이 표시됩니다.</div>
     <div class="warn">연도를 선택하지 않으면 전체 연도를 조회합니다 — 수만 행 처리로 수십 초 소요될 수 있습니다.</div>
 
-    <h3>🏷️ 주카테고리</h3>
-    <p>라디오 버튼으로 <strong>1개만</strong> 선택합니다. 선택 시 SKU 드롭다운이 해당 카테고리 소속 SKU로 자동 필터링됩니다. 도넛 차트도 품목별 비중으로 전환됩니다.</p>
+    <h3>주카테고리</h3>
+    <p>라디오 버튼으로 <strong>1개만</strong> 선택합니다. 선택 시 SKU 드롭다운이 해당 카테고리 소속으로 자동 필터링됩니다.</p>
 
-    <h3>🔖 태그</h3>
-    <p>복수 선택 가능합니다. 선택한 태그 중 <strong>하나라도</strong> 포함된 SKU(OR 조건)를 조회합니다. 주카테고리와 태그를 동시에 선택하면 AND 조건으로 교집합 조회합니다.</p>
-    <div class="note">예: 주카테고리 '자전거' + 태그 '아웃도어' → 자전거 카테고리이면서 아웃도어 태그인 SKU만 조회</div>
+    <h3>태그</h3>
+    <p>복수 선택 가능합니다(OR 조건). 주카테고리와 동시에 선택하면 AND 조건으로 교집합만 조회합니다.</p>
+    <div class="note">예: 주카테고리 'Helmet' + 태그 'Krios Pro' → Krios Pro 헬멧만. 태그 'ADV' + 태그 'Summer' → ADV 또는 Summer 태그 SKU 전체.</div>
 
-    <h3>📦 SKU</h3>
-    <p>복수 선택 가능합니다. 검색 창으로 특정 SKU를 빠르게 찾을 수 있습니다. 주카테고리 선택 시 목록이 해당 카테고리로 자동 필터됩니다.</p>
-
-    <h3>🏪 거래처 / 🔖 거래유형</h3>
-    <p>거래처는 복수 선택, 거래유형(소매/세금계산서/카드 등)은 체크박스로 선택합니다.</p>
+    <h3>SKU / 거래처 / 거래유형</h3>
+    <p>SKU는 검색창으로 빠르게 찾을 수 있으며 복수 선택됩니다. 거래처도 복수 선택, 거래유형은 체크박스로 선택합니다.</p>
   </div>
 
   <!-- 3. 요약 카드 -->
   <div class="section" id="sec-cards">
     <h2>3. 요약 지표 카드</h2>
+    <p>카드 순서: <strong>그룹수 / 출고수량 / 반품수량 / 반품율 / 판매수량 / 매출액 / 평균단가</strong></p>
     <table class="tbl">
-      <tr><th>지표명</th><th>계산 수식</th><th>설명</th></tr>
-      <tr>
-        <td>출고수량</td>
-        <td>양수 수량 합계</td>
-        <td>실제로 고객에게 출고된 총 수량</td>
-      </tr>
-      <tr>
-        <td>반품수량</td>
-        <td>음수 수량 합계</td>
-        <td>고객이 반품한 수량. 음수로 표시되며 제품이 재입고됩니다</td>
-      </tr>
-      <tr>
-        <td>판매수량</td>
-        <td>출고수량 + 반품수량</td>
-        <td><strong>순판매수량</strong> = 실질적으로 판매된 수량</td>
-      </tr>
-      <tr>
-        <td>반품율</td>
-        <td>|반품수량| ÷ 출고수량 × 100</td>
-        <td>출고 대비 반품 비율. <span class="badge b-green">5% 미만</span> <span class="badge b-amber">5~10%</span> <span class="badge b-red">10% 초과</span></td>
-      </tr>
-      <tr>
-        <td>매출액</td>
-        <td>공급가액 합계</td>
-        <td>부가세 제외 실매출액. 반품 시 음수로 자동 차감됩니다</td>
-      </tr>
-      <tr>
-        <td>평균단가</td>
-        <td>매출액 ÷ <strong>판매수량(순)</strong></td>
-        <td>반품 후 실질 평균 판매가격. 출고수량이 아닌 순판매수량 기준입니다</td>
-      </tr>
-      <tr>
-        <td>그룹수</td>
-        <td>집계 행 수</td>
-        <td>현재 그룹 기준(SKU/거래처/월/거래유형)의 집계 항목 수</td>
-      </tr>
+      <tr><th>지표</th><th>계산</th><th>설명</th></tr>
+      <tr><td>그룹수</td><td>집계 행 수</td><td>현재 그룹 기준(시리즈/SKU/거래처 등)의 항목 수</td></tr>
+      <tr><td>출고수량</td><td>양수 수량 합계</td><td>실제 고객에게 출고된 총 수량</td></tr>
+      <tr><td>반품수량</td><td>음수 수량 합계</td><td>고객 반품 수량. 빨간색으로 표시</td></tr>
+      <tr><td>반품율</td><td>|반품| ÷ 출고 × 100</td><td><span class="badge b-green">5% 미만 정상</span> <span class="badge b-amber">5~10% 관리필요</span> <span class="badge b-red">10% 초과 주의</span></td></tr>
+      <tr><td>판매수량</td><td>출고 + 반품</td><td>순판매수량 = 실질 판매량</td></tr>
+      <tr><td>매출액</td><td>공급가액 합계</td><td>부가세 제외 실매출. 반품 시 자동 차감</td></tr>
+      <tr><td>평균단가</td><td>매출액 ÷ 판매수량(순)</td><td>반품 반영 실질 평균 판매가</td></tr>
     </table>
-    <div class="note">카드 라벨에 마우스를 올리면 상세 계산 방식 툴팁이 표시됩니다.</div>
+    <div class="note">2개년 이상 조회 시 판매수량·매출액·평균단가 카드에 연도별 수치가 추가로 표시됩니다. 파란 dot=첫 번째 연도, 회색 dot=두 번째 연도.</div>
+    <div class="info">카드 라벨에 마우스를 올리면 상세 계산 방식 툴팁이 표시됩니다.</div>
   </div>
 
   <!-- 4. 차트 -->
   <div class="section" id="sec-chart">
-    <h2>4. 차트 설명</h2>
+    <h2>4. 차트</h2>
 
-    <h3>📈 월별 매출 추이</h3>
-    <p>조회 기간의 월별 매출액(공급가액)을 막대 그래프로 표시합니다.</p>
-    <p><strong>전년비교 ON:</strong> 동일 월의 전년도 매출액을 점선으로 오버레이합니다. 연도를 먼저 선택해야 활성화됩니다.</p>
-    <div class="info">전년비교는 선택된 연도에서 1년을 뺀 연도의 데이터를 추가로 조회합니다 — 부하가 증가할 수 있습니다.</div>
+    <h3>월별 추이 차트</h3>
+    <p>탭으로 <strong>매출액</strong>과 <strong>판매수량</strong> 기준을 전환할 수 있습니다. 라벨은 상세 집계 테이블의 타임컬럼과 동일합니다 (<code>2504</code>, <code>25Q1</code> 등). 연도 경계에 파란 점선 구분선이 표시됩니다.</p>
+    <p>상위 5개 SKU의 판매수량 추이가 컬러 라인으로 오버레이됩니다.</p>
 
-    <h3>🥧 비중 도넛 차트</h3>
-    <p>탭으로 <strong>매출액 비중</strong>과 <strong>판매수량 비중</strong>을 전환할 수 있습니다.</p>
+    <h3>비중 도넛 차트</h3>
+    <p>상세 집계의 현재 탭 기준으로 그려집니다. 시리즈뷰이면 시리즈별, 거래처뷰이면 거래처별 비중. 상위 6개 + 기타로 구성됩니다.</p>
     <table class="tbl">
-      <tr><th>조건</th><th>표시 내용</th></tr>
-      <tr><td>주카테고리 미선택 (전체)</td><td>카테고리별 매출액/수량 비중</td></tr>
-      <tr><td>주카테고리 선택 시</td><td>해당 카테고리 내 품목(SKU)별 비중</td></tr>
+      <tr><th>집계 탭</th><th>도넛 기준</th></tr>
+      <tr><td>시리즈</td><td>시리즈별 매출 / 수량 비중</td></tr>
+      <tr><td>SKU</td><td>SKU별 매출 / 수량 비중</td></tr>
+      <tr><td>거래처</td><td>거래처별 매출 / 수량 비중</td></tr>
+      <tr><td>월별</td><td>월별 매출 / 수량 비중</td></tr>
+      <tr><td>거래유형</td><td>채널별 매출 / 수량 비중</td></tr>
     </table>
-    <p>상위 6개 항목이 표시되며, 나머지는 '기타'로 묶입니다.</p>
   </div>
 
   <!-- 5. 테이블 -->
   <div class="section" id="sec-table">
     <h2>5. 상세 집계 테이블</h2>
 
-    <h3>뷰 전환 — 묶음 해상도와 분석축</h3>
-    <p>상세 집계는 두 종류의 전환을 제공합니다.</p>
-    <p><strong>SKU ⇄ 시리즈 토글</strong> (파란 세그먼트): 같은 매출을 보는 해상도를 바꿉니다.
-       SKU는 개별 품번(색·사이즈까지), 시리즈는 그 묶음(Krios Pro, 50S 등)입니다.
-       시리즈뷰에서 행을 클릭하면 하위 SKU들이 아코디온으로 펼쳐집니다.</p>
-    <p><strong>분석축 탭</strong> (거래처·월별·거래유형): 같은 매출을 다른 관점으로 봅니다.</p>
-    <table class="tbl">
-      <tr><th>뷰</th><th>그룹 기준</th><th>활용</th></tr>
-      <tr><td>SKU</td><td>품목 코드별</td><td>제품별 매출 순위, 반품율, 월별 추이</td></tr>
-      <tr><td>시리즈</td><td>제품 모델별 묶음</td><td>모델별 매출 비율·판가 비교 → 클릭하면 색·사이즈별 SKU</td></tr>
-      <tr><td>거래처</td><td>거래처명별</td><td>거래처별 매출 규모, 기여도</td></tr>
-      <tr><td>월별</td><td>연월별</td><td>월별 매출 추이, 성수기 파악</td></tr>
-      <tr><td>거래유형</td><td>소매/도매 등</td><td>채널별 매출 비중</td></tr>
-    </table>
-    <p>시리즈 묶음 기준: CATEGORY_MAP의 series 값이 우선이며, 없으면 품번 앞자리로 묶고,
-       그것도 없으면 SKU 단독으로 표시됩니다.</p>
+    <h3>뷰 구성</h3>
+    <p><strong>[시리즈 | SKU]</strong> 토글로 같은 매출을 다른 해상도로 봅니다. 시리즈는 색·사이즈 변형을 묶은 모델 단위, SKU는 개별 품번입니다. 그 옆 탭으로 분석축을 전환합니다.</p>
 
-    <h3>컬럼 설명 (SKU·시리즈 기준)</h3>
+    <h3>타임컬럼</h3>
+    <p>선택 연도·기간에 따라 자동으로 단위가 결정됩니다. 시리즈·그룹 행(부모)과 아코디언 행(자식) 모두 동일한 타임컬럼 기준으로 집계되어 세로 정렬이 일치합니다.</p>
+
+    <h3>컬럼 순서 및 설명</h3>
+    <p>컬럼 순서: <strong>시리즈/SKU명 | SKU수·규격 | [타임컬럼] | 출고수량 | 반품수량 | 반품율 | 판매수량 | 매출액 | 평균단가 | 비중</strong></p>
     <table class="tbl">
-      <tr><th>컬럼</th><th>수식</th><th>설명</th></tr>
-      <tr><td>출고수량</td><td>양수 합계</td><td>총 출고 수량</td></tr>
-      <tr><td>반품수량</td><td>음수 합계</td><td>총 반품 수량</td></tr>
+      <tr><th>컬럼</th><th>계산</th><th>설명</th></tr>
+      <tr><td>출고수량</td><td>양수 합계</td><td>해당 그룹의 총 출고</td></tr>
+      <tr><td>반품수량</td><td>음수 합계</td><td>항상 빨간색 표시</td></tr>
+      <tr><td>반품율</td><td>|반품|÷출고×100</td><td>색상 뱃지로 위험도 구분</td></tr>
       <tr><td>판매수량</td><td>출고+반품</td><td>순판매수량</td></tr>
-      <tr><td>반품율</td><td>|반품|÷출고×100</td><td>색상 코딩으로 위험도 표시</td></tr>
       <tr><td>매출액</td><td>공급가액 합계</td><td>부가세 제외</td></tr>
-      <tr><td>평균단가</td><td>매출액÷판매수량</td><td>순판매수량 기준 단가 (모든 단가의 기본)</td></tr>
-      <tr><td>비중</td><td>매출÷전체매출</td><td>전체 대비 매출 기여도 (바 시각화)</td></tr>
+      <tr><td>평균단가</td><td>매출액÷판매수량</td><td>하늘색으로 표시</td></tr>
+      <tr><td>비중</td><td>그룹매출÷전체매출</td><td>퍼센트 숫자만 표시. 아코디언에서는 그룹 내 비중</td></tr>
     </table>
-    <p>시리즈뷰에는 추가로 <strong>SKU수</strong>(시리즈에 묶인 품번 종류)와 <strong>구성</strong>(Helmet×3 등 주카테고리 분포)이 표시됩니다.</p>
 
-    <p>컬럼 헤더를 클릭하면 해당 컬럼 기준으로 정렬됩니다. 한 번 더 클릭하면 반대 방향으로 정렬됩니다.</p>
-    <p><strong>⬇ CSV</strong> 버튼으로 현재 집계 결과를 저장합니다. 각 값이 독립 열로 나가 엑셀 가공이 쉽습니다.</p>
+    <h3>연도별 이중 표시 (2개년 이상 조회 시)</h3>
+    <p>그룹 행(시리즈/거래처 등 부모 행)과 합계 행에서 판매수량·매출액·평균단가 셀이 연도별로 분리 표시됩니다.</p>
+    <div class="note">예: 2025+2026 조회 시 → 판매수량 셀에 ● 681 (25년) / ○ 231 (26년) 형태로 표시. SKU 단독 행과 아코디언 자식 행은 단일 표시 유지.</div>
+
+    <h3>아코디언</h3>
+    <p>시리즈·거래처·월·거래유형 뷰에서 행을 클릭하면 하위 SKU들이 펼쳐집니다. 자식 행의 합계가 부모 행의 숫자입니다.</p>
+    <div class="note">시리즈뷰의 'SKU수·대표규격명': 하위 SKU들의 공통 앞부분을 추출한 규격명입니다. 예: Krios Pro 시리즈 → "Krios Pro Helmet ECE/DOT" (색·사이즈 부분 제거)</div>
+
+    <h3>정렬 및 내보내기</h3>
+    <p>컬럼 헤더를 클릭하면 정렬됩니다. 월별 탭은 최신 월 기준 내림차순 고정, 거래유형 탭은 세금계산서 → 소매 → 카드 → 기타 순 고정.</p>
+    <p><strong>CSV 내보내기</strong>: 연도별 이중 표시가 활성화된 경우 <code>2025_판매수량</code>, <code>2026_판매수량</code> 형태로 연도별 컬럼이 분리 출력됩니다.</p>
   </div>
 
   <!-- 6. 발주 예측 -->
   <div class="section" id="sec-forecast">
     <h2>6. 발주 예측</h2>
-    <p>과거 판매 데이터를 기반으로 향후 발주에 필요한 예측 수량을 계산합니다. <strong>📦 발주예측 보기</strong> 버튼으로 활성화됩니다.</p>
+    <p>과거 판매 데이터 기반으로 발주 권장 수량을 계산합니다. <strong>발주예측 보기</strong> 버튼으로 활성화됩니다. <strong>3개월 이상 판매 기록이 없는 SKU는 자동 제외</strong>됩니다(단종 또는 판매 저조로 판단).</p>
 
     <h3>예측 알고리즘: 트렌드 보정 가중 이동평균</h3>
-
     <div class="formula">
-      <div class="label">Step 1. 가중 이동평균 (Weighted Moving Average)</div>
-      WMA = (최근월×W₁) + (2개월전×W₂) + (3개월전×W₃) + ...
+      <div class="label">Step 1. 가중 이동평균 (WMA)</div>
+      WMA = 최근월×W₁ + 2개월전×W₂ + … (최근일수록 높은 가중치)
     </div>
     <table class="tbl">
       <tr><th>기간</th><th>가중치 (최근→과거)</th></tr>
@@ -273,51 +251,34 @@ code{background:#f1f5f9;border:1px solid var(--bd);border-radius:4px;
       <tr><td>6개월</td><td>25% · 20% · 18% · 15% · 12% · 10%</td></tr>
       <tr><td>12개월</td><td>18% · 14% · 12% · 10% · 9% · 8% · 7% · 6% · 5% · 5% · 4% · 2%</td></tr>
     </table>
-
     <div class="formula">
-      <div class="label">Step 2. 트렌드(증감 추세) 계산 — 선형 회귀</div>
-      기울기(slope) = 기간 내 월별 판매량의 최소자승법(OLS) 직선 기울기<br>
-      트렌드율(%) = slope ÷ 가중평균 × 100<br>
-      (범위 제한: −50% ~ +50%)
-    </div>
-    <div class="note">트렌드율 예시: 3개월 평균이 100개인데 매월 8개씩 증가 추세 → ↑+8%. 즉 "현재 월 판매량이 평균 대비 8% 속도로 증가 중"을 의미합니다.</div>
-
-    <div class="formula">
-      <div class="label">Step 3. 트렌드 보정 예측값</div>
-      예측값 = WMA × (1 + 트렌드율)
-    </div>
-
-    <div class="formula">
-      <div class="label">Step 4. 발주권장수량 (안전재고 포함)</div>
-      발주권장수량 = 예측값 × 1.2 (안전재고 20% 가산)
+      <div class="label">Step 2~4. 트렌드율 → 예측값 → 발주권장수량</div>
+      트렌드율(%) = 선형회귀 기울기 ÷ WMA × 100 (범위: -50% ~ +50%)<br>
+      예측값 = WMA × (1 + 트렌드율)<br>
+      발주권장수량 = 예측값 × 1.2  (안전재고 20% 가산)
     </div>
 
     <h3>컬럼 설명</h3>
     <table class="tbl">
       <tr><th>컬럼</th><th>설명</th></tr>
-      <tr><td>월판매수량 (3개월)</td><td>최근 3개월 가중평균. 옆의 ↑↓는 기간 내 증감 추세율</td></tr>
-      <tr><td>월판매수량 (6개월)</td><td>최근 6개월 가중평균 + 트렌드</td></tr>
-      <tr><td>월판매수량 (12개월)</td><td>최근 12개월 가중평균 + 트렌드</td></tr>
-      <tr><td>1개월 예측</td><td>가장 신뢰도 높은 기간의 트렌드 반영 예측 수량</td></tr>
+      <tr><td>월판매(3개월)</td><td>최근 3개월 WMA + 증감 추세율(↑↓)</td></tr>
+      <tr><td>월판매(6개월)</td><td>최근 6개월 WMA + 추세율</td></tr>
+      <tr><td>월판매(12개월)</td><td>최근 12개월 WMA + 추세율</td></tr>
+      <tr><td>1개월 예측</td><td>신뢰도 높은 기간 기준 트렌드 반영 예측량</td></tr>
       <tr><td>3개월 예측</td><td>1개월 예측 × 3</td></tr>
-      <tr><td>발주권장수량</td><td>트렌드 반영 예측값 × 1.2. <strong>현재 재고를 차감 후 실발주 수량 결정 권장</strong></td></tr>
-      <tr><td>판매라이프사이클</td><td>해당 SKU의 판매 기록이 존재하는 개월 수 (중간 공백 포함). 짧을수록 신규/단종 제품</td></tr>
-      <tr><td>판매시작월</td><td>첫 판매 기록이 있는 연월</td></tr>
+      <tr><td>발주권장수량</td><td>예측값 × 1.2. <strong>현재 재고를 차감 후 실발주량 결정 권장</strong></td></tr>
+      <tr><td>판매라이프사이클</td><td>판매 기록이 있는 개월 수. 짧을수록 신규/단종 가능성</td></tr>
     </table>
+    <div class="warn">데이터 기간 3개월 미만(⚠ 표시) 제품은 예측 신뢰도가 낮습니다. 참고용으로만 활용하세요.</div>
 
-    <h3>계절 상품 처리</h3>
-    <p>CATEGORY_MAP에서 <code>seasonal</code> 컬럼에 <code>11-3</code>처럼 시즌 범위가 지정된 제품은 해당 월의 데이터만 예측에 사용합니다.</p>
-    <div class="note">스노우 제품: 11월~3월 데이터만 사용. 비시즌 월(4~10월)은 계산에서 제외됩니다.</div>
-    <div class="warn">데이터 기간이 3개월 미만(⚠ 표시)인 제품은 예측 신뢰도가 낮습니다. 참고용으로만 활용하세요.</div>
-
-    <h3>발주 의사결정 권장 흐름</h3>
+    <h3>발주 의사결정 흐름</h3>
     <div class="flow">
       <div class="flow-step">발주권장수량 확인</div><span class="flow-arrow">→</span>
-      <div class="flow-step">현재 재고 차감</div><span class="flow-arrow">→</span>
+      <div class="flow-step">현재고 차감</div><span class="flow-arrow">→</span>
       <div class="flow-step">리드타임 고려</div><span class="flow-arrow">→</span>
       <div class="flow-step">실발주 수량 결정</div>
     </div>
-    <div class="info">V5에서 ERP 연동을 통한 자동 재고 차감 기능을 도입할 예정입니다.</div>
+    <div class="info">V7에서 이카운트 재고 API 연동을 통한 자동 재고 반영 기능을 도입할 예정입니다.</div>
   </div>
 
   <!-- 7. 카테고리 & 태그 -->
@@ -328,59 +289,54 @@ code{background:#f1f5f9;border:1px solid var(--bd);border-radius:4px;
     <h3>CATEGORY_MAP 컬럼 구조 (7컬럼)</h3>
     <table class="tbl">
       <tr><th>컬럼</th><th>예시</th><th>설명</th></tr>
-      <tr><td>카테고리명</td><td>KLIM/Helmet</td><td>브랜드/주카테고리 (멀티) 또는 분류명</td></tr>
-      <tr><td>SKU</td><td>3610-000-120-003</td><td>품목 코드 (판매 데이터와 일치)</td></tr>
+      <tr><td>카테고리명</td><td>KLIM/Helmet</td><td>브랜드/주카테고리 구분용 표기</td></tr>
+      <tr><td>SKU</td><td>3610-000-120-003</td><td>품목 코드 (판매 원장과 일치)</td></tr>
       <tr><td>품목명</td><td>Krios Pro SM Matte Black</td><td>규격명·상세 설명</td></tr>
-      <tr><td>주카테고리</td><td>Helmet</td><td>비율 집계·도넛 기준. SKU당 1개 (배타적)</td></tr>
-      <tr><td>태그</td><td>KLIM|ADV|Winter</td><td>복수 태그. | 로 구분. OR 필터 (중첩)</td></tr>
-      <tr><td>seasonal</td><td>11-3</td><td>시즌 범위 (없으면 빈칸 = 연중)</td></tr>
-      <tr><td>series</td><td>Krios Pro</td><td>시리즈/모델명. 시리즈뷰 묶음 기준 (배타적)</td></tr>
+      <tr><td>주카테고리</td><td>Helmet</td><td>형태·용도 기준 절대 분류. SKU당 1개 (배타적)</td></tr>
+      <tr><td>태그</td><td>KLIM|Krios Pro|ADV</td><td>첫 값=브랜드명. | 구분. 복수 가능(중첩적)</td></tr>
+      <tr><td>seasonal</td><td>11-3</td><td>시즌 월 범위. 비워두면 연중 상품</td></tr>
+      <tr><td>series</td><td>Krios Pro</td><td>색·사이즈 변형 묶음 단위. 시리즈뷰 기준 (배타적)</td></tr>
     </table>
 
     <h3>4개 분류축의 관계</h3>
-    <table class="tbl">
-      <tr><th>축</th><th>성격</th><th>정의</th></tr>
-      <tr><td>주카테고리</td><td>배타적</td><td>형태·용도 기준 절대 분류. SKU당 1개</td></tr>
-      <tr><td>시리즈</td><td>배타적</td><td>variation(색·사이즈)은 달라도 근본적으로 같은 제품의 묶음</td></tr>
-      <tr><td>태그</td><td>중첩적</td><td>필요에 따라 붙이는 분류꼬리. SKU당 복수 (ADV·Winter·고가관리 등)</td></tr>
-    </table>
-    <div class="note">계층 관계: 브랜드 ⊃ 주카테고리 ⊃ 시리즈 ⊃ SKU. 태그는 이 계층을 가로지릅니다. 예: 시리즈 "Krios Pro"는 색·사이즈가 다른 여러 SKU의 묶음이고, "ADV"는 여러 시리즈에 걸쳐 붙는 태그입니다.</div>
+    <div class="note">계층: 브랜드 ⊃ 주카테고리 ⊃ 시리즈 ⊃ SKU. 태그는 이 계층을 가로지릅니다.<br>
+    예: "Krios Pro"는 색·사이즈가 다른 여러 SKU의 시리즈이고, "ADV"는 여러 시리즈에 붙는 라이딩 형태 태그입니다.</div>
 
-    <h3>카테고리 수정 방법</h3>
-    <p>구글 시트에서 CATEGORY_MAP 탭을 직접 편집하면 다음 조회부터 반영됩니다. 별도 재배포 불필요합니다.</p>
+    <h3>카테고리 수정</h3>
+    <p>구글 시트에서 CATEGORY_MAP 탭을 직접 편집하면 다음 조회부터 자동 반영됩니다. 재배포 불필요.</p>
   </div>
 
   <!-- 8. 팁 -->
   <div class="section" id="sec-tips">
     <h2>8. 활용 팁</h2>
 
-    <h3>빠른 브랜드별 분석</h3>
-    <p>주카테고리로 제품군을 먼저 선택한 후 조회하면 해당 카테고리의 SKU별 매출, 반품율, 비중을 한눈에 볼 수 있습니다.</p>
+    <h3>다년간 추이 분석</h3>
+    <p>2~3개년 선택 + 적용 → 조회. 타임컬럼이 월별(2개년) 또는 분기별(3~4개년)로 자동 전환됩니다. 요약 카드와 합계 행에 연도별 판매수량·매출액·평균단가가 나란히 표시됩니다.</p>
 
-    <h3>전년도 성장률 확인</h3>
-    <p>현재 연도를 선택 후 조회 → 전년비교 ON → 막대차트에서 전년도 점선과 현재 매출 막대를 비교합니다.</p>
+    <h3>특정 계절 비교</h3>
+    <p>2023+2024 선택 + 4Q 기간 선택 → 조회. 두 해의 10·11·12월 데이터만 타임컬럼으로 표시되어 겨울 성수기 비교가 가능합니다.</p>
+
+    <h3>컬렉션 전체 매출 조회 (KLIM)</h3>
+    <p>태그에서 컬렉션명(Dakar, Krios Pro, Mojave 등) 선택 → 조회. 자켓·팬츠·글러브 등 카테고리에 관계없이 해당 컬렉션 전체 매출이 집계됩니다.</p>
+
+    <h3>시리즈 내 SKU 비중 확인</h3>
+    <p>시리즈뷰에서 행 클릭 → 하위 SKU 아코디언 펼침. 각 SKU의 매출액과 그룹 내 비중이 표시됩니다.</p>
 
     <h3>반품 많은 제품 찾기</h3>
-    <p>SKU 그룹으로 조회 후 반품율 컬럼 클릭(내림차순 정렬) → <span class="badge b-red">빨간 뱃지</span> SKU 집중 관리.</p>
+    <p>SKU 또는 시리즈뷰로 조회 → 반품율 컬럼 클릭(내림차순) → <span class="badge b-red">빨간 뱃지</span> 제품 집중 관리.</p>
 
     <h3>발주 계획 수립</h3>
     <ol style="margin-left:20px;color:var(--muted);font-size:13px;line-height:2">
-      <li>연도: 전체 또는 최근 2~3년 선택</li>
+      <li>최근 2~3년 연도 선택 + 적용</li>
       <li>주카테고리로 발주 대상 제품군 선택</li>
       <li>조회 후 발주예측 보기 활성화</li>
-      <li>판매라이프사이클 긴 제품 = 안정적 데이터 → 신뢰도 높음</li>
+      <li>판매라이프사이클 긴 제품 = 신뢰도 높음</li>
       <li>발주권장수량에서 현재 재고 차감 후 실발주</li>
     </ol>
-
-    <h3>CSV 내보내기</h3>
-    <p>상세 집계 테이블과 발주 예측 모두 CSV 다운로드를 지원합니다. 엑셀에서 추가 분석이 가능합니다.</p>
-
-    <h3>데이터 최신화 확인</h3>
-    <p>헤더의 연도 태그 옆에 추출일 <code>(D26.05.18.월 14:55:09)</code>이 표시됩니다. 이 날짜가 최근 데이터가 업데이트된 날짜입니다.</p>
   </div>
 
   <div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px">
-    미지세계 주식회사 매출 분석 대시보드 v4 &nbsp;|&nbsp; 문의: 내부 시스템 관리자
+    미지세계 주식회사 영업 대시보드 v6.2 &nbsp;|&nbsp; Copyright 2026 MIJI World Corp.
   </div>
 
 </div>
