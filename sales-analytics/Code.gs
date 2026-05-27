@@ -1,12 +1,12 @@
 // ============================================================
-//  미지세계 매출 분석 대시보드  —  Code.gs  v6.1
+//  미지세계 매출 분석 대시보드  —  Code.gs  v6.2
 // ============================================================
 // ★★ 배포 전환 — 아래 한 줄만 바꾸면 됩니다 ★★
 var DEPLOY_MODE = 'sena';    // 'sena' | 'multi'
 // var DEPLOY_MODE = 'multi'; // ← 멀티브랜드 배포 시 위 줄과 교체
 
 // ── 공통 설정 (양쪽 배포 동일) ──────────────────────────────
-var VERSION = 'v6.1';
+var VERSION = 'v6.2';
 
 // ── SENA 배포 설정 ───────────────────────────────────────────
 var CONFIG_SENA = {
@@ -161,25 +161,39 @@ function getFilteredData(filters) {
 
     var effectiveGroupBy = filters.groupBy || 'sku';
 
-    // 아코디언용 월별 키(직전 12개월) — 프론트 SKU탭과 동일 기준
-    var crossMonths = buildRecentMonths_(12);
+    // 타임컬럼 정의: 선택 연도 × 기간으로 자동 결정
+    // 1개년=월별, 2개년=월별(가로스크롤), 3~4개년=분기별, 5개년+=연간
+    var timeColsResult = buildTimeCols_(
+      filters.years||[], filters.months||[],
+      filters.dateFrom||'', filters.dateTo||''
+    );
+    var timeCols      = timeColsResult.cols;       // [{key,label,months:[]}]
+    var timeSpanLabel = timeColsResult.spanLabel;  // 표시용 기간 문자열
+    var flatMonths    = timeColsResult.flatMonths; // 집계 대상 월 목록
 
-    // 메인 집계: 비-SKU 뷰는 그룹 행에도 월별 합계를 담아 아코디언과 그리드 일치
+    // 메인 집계: 비-SKU 뷰는 그룹 행에도 타임컬럼 합계를 담아 아코디언과 그리드 일치
     var agg        = (effectiveGroupBy!=='sku')
-                       ? aggregate_(rows, effectiveGroupBy, crossMonths)
+                       ? aggregate_(rows, effectiveGroupBy, timeCols)
                        : aggregate_(rows, effectiveGroupBy);
     var monthly    = aggregateMonthly_(rows);
     var txBreak    = aggregateByField_(rows,'txType');
     var catBreak   = aggregateBySkuMeta_(rows,skuMeta,'primaryCat');
     var skuAgg     = aggregate_(rows,'sku');
-    var skuMonthly = aggregateSkuMonthly_(rows);
-    var retInsight = aggregateReturnInsight_(rows);
+    var skuMonthly = aggregateSkuMonthlyByTimeCols_(rows, timeCols);
     var brandBreak = (CONFIG.MODE==='multi') ? aggregateByField_(rows,'brand') : null;
     var familyBreak= aggregateByField_(rows,'familyTag');
     // 교차 데이터: SKU뷰 외 모든 뷰(시리즈/거래처/월/거래유형)는 아코디언용 cross 생성
     var crossData = null;
     if(effectiveGroupBy!=='sku'){
-      crossData = aggregateCross_(rows, effectiveGroupBy, crossMonths);
+      crossData = aggregateCross_(rows, effectiveGroupBy, timeCols);
+    }
+
+    // 연도별 breakdown: 그룹 행의 연도별 판매수량·매출액·평균단가 이중 표시용
+    // yearBreak[groupKey] = [{year, saleQty, supply, avgPrice}, ...]
+    var yearBreak = null;
+    var selectedYears = (filters.years||[]).slice().sort();
+    if(selectedYears.length>=2 && effectiveGroupBy!=='sku'){
+      yearBreak = aggregateYearBreak_(rows, effectiveGroupBy, selectedYears);
     }
 
     // ── 미분류 SKU 감지 ──────────────────────────────────────
@@ -216,8 +230,9 @@ function getFilteredData(filters) {
     return {ok:true, data:agg, totalRows:rows.length,
             monthly:monthly, txBreak:txBreak, catBreak:catBreak,
             skuAgg:skuAgg, skuMonthly:skuMonthly,
-            retInsight:retInsight, crossData:crossData,
-            crossMonths:crossMonths,
+            crossData:crossData,
+            timeCols:timeCols, timeSpanLabel:timeSpanLabel,
+            yearBreak:yearBreak, selectedYears:selectedYears,
             brandBreak:brandBreak, familyBreak:familyBreak,
             unmappedSkus:unmappedSkus, ssUrl:ssUrl,
             debugInfo:debugInfo};
@@ -361,6 +376,100 @@ function buildRecentMonths_(n){
   return out;
 }
 
+// ── 타임컬럼 정의 생성 ───────────────────────────────────────
+// 선택 연도 × 기간 프리셋(월 배열) → {cols, unit, spanLabel, flatMonths}
+// cols: [{key, label, months:[yyyy-MM,...]}]
+// unit: 'month' | 'quarter' | 'year'
+// spanLabel: 표시용 기간 문자열 (예: "2023-01 ~ 2024-12 · 월별")
+// flatMonths: 모든 cols의 months를 평탄화한 배열 (crossData 필터용)
+function buildTimeCols_(years, selMonths, dateFrom, dateTo){
+  // 유효 연도가 없으면 최근 12개월 기본값
+  if(!years||!years.length){
+    var recent=buildRecentMonths_(12);
+    var cols=recent.map(function(mk){
+      return {key:mk, label:mk.slice(5)+'월', months:[mk]};
+    });
+    return {cols:cols, unit:'month', spanLabel:'최근 12개월', flatMonths:recent};
+  }
+
+  var sortedYears=years.slice().sort();
+  var nYears=sortedYears.length;
+
+  // 유효 월 필터 (기간 프리셋 없으면 전월 포함)
+  var activeMons=selMonths&&selMonths.length?selMonths:
+    [1,2,3,4,5,6,7,8,9,10,11,12];
+
+  // 날짜 직접 입력이 있으면 해당 범위로 덮어씀
+  if(dateFrom&&dateTo){
+    var dfY=parseInt(dateFrom.slice(0,4)), dfM=parseInt(dateFrom.slice(5,7));
+    var dtY=parseInt(dateTo.slice(0,4)), dtM=parseInt(dateTo.slice(5,7));
+    var rangeMonths=[];
+    for(var y=dfY;y<=dtY;y++){
+      var mStart=(y===dfY?dfM:1), mEnd=(y===dtY?dtM:12);
+      for(var m=mStart;m<=mEnd;m++){
+        rangeMonths.push(y+'-'+(m<10?'0':'')+m);
+      }
+    }
+    var cols=rangeMonths.map(function(mk){
+      return {key:mk, label:mk.slice(2,4)+'-'+mk.slice(5)+'월', months:[mk]};
+    });
+    var span=dateFrom+' ~ '+dateTo+' · 월별';
+    return {cols:cols, unit:'month', spanLabel:span, flatMonths:rangeMonths};
+  }
+
+  // 단위 결정: 연도 수 기준
+  // 1개년: 월별 / 2개년: 월별(가로 스크롤) / 3~4개년: 분기별 / 5개년+: 연간
+  var unit= nYears<=2?'month': nYears<=4?'quarter':'year';
+
+  var cols=[], flatMonths=[];
+  var minY=parseInt(sortedYears[0]), maxY=parseInt(sortedYears[sortedYears.length-1]);
+
+  if(unit==='month'){
+    for(var y=minY;y<=maxY;y++){
+      var yr=String(y);
+      if(sortedYears.indexOf(yr)===-1) continue;
+      for(var mi=0;mi<activeMons.length;mi++){
+        var m=activeMons[mi];
+        var mk=y+'-'+(m<10?'0':'')+m;
+        // 항상 YYMM 형태 (1개년: "2505", 2개년: "2505" — 분기 "24Q4"와 일관성)
+        var lbl=yr.slice(2)+(m<10?'0':'')+m;
+        cols.push({key:mk, label:lbl, months:[mk]});
+        flatMonths.push(mk);
+      }
+    }
+  } else if(unit==='quarter'){
+    // 분기별: 활성 월을 분기로 그룹핑
+    var qDef=[[1,2,3],[4,5,6],[7,8,9],[10,11,12]];
+    for(var y=minY;y<=maxY;y++){
+      var yr=String(y);
+      if(sortedYears.indexOf(yr)===-1) continue;
+      for(var q=0;q<4;q++){
+        var qMons=qDef[q].filter(function(m){return activeMons.indexOf(m)!==-1;});
+        if(!qMons.length) continue;
+        var qMonKeys=qMons.map(function(m){return y+'-'+(m<10?'0':'')+m;});
+        cols.push({key:yr+'Q'+(q+1), label:yr.slice(2)+'Q'+(q+1), months:qMonKeys});
+        qMonKeys.forEach(function(mk){flatMonths.push(mk);});
+      }
+    }
+  } else {
+    // 연간: 연도별 칸
+    for(var yi=0;yi<sortedYears.length;yi++){
+      var y=parseInt(sortedYears[yi]);
+      var yMons=activeMons.map(function(m){return y+'-'+(m<10?'0':'')+m;});
+      cols.push({key:String(y), label:String(y)+'년', months:yMons});
+      yMons.forEach(function(mk){flatMonths.push(mk);});
+    }
+  }
+
+  // spanLabel 생성
+  var unitStr=unit==='month'?'월별':unit==='quarter'?'분기별':'연간';
+  var periodStr=selMonths&&selMonths.length?
+    selMonths.length===12?'전체':selMonths[0]+'~'+selMonths[selMonths.length-1]+'월':'전체';
+  var spanLabel=sortedYears.join(', ')+'년'+(periodStr!=='전체'?' · '+periodStr:'')+' · '+unitStr;
+
+  return {cols:cols, unit:unit, spanLabel:spanLabel, flatMonths:flatMonths};
+}
+
 // ── 시리즈 키 결정 ─────────────────────────────────────────
 // ① MAP에 series값 있으면 그것 → ② 없으면 품번 앞자리(- 앞, 또는 KLIM 4자리)
 // → ③ 그것도 없으면 SKU 그대로(단독 시리즈)
@@ -495,7 +604,7 @@ function finalizeGroup_(g){
     .slice(0,4).map(function(k){return k+'×'+cs[k];}).join(', ');
   delete g.saleNos; delete g.catSet; delete g.skuSet; delete g.itemNames; return g;
 }
-function addRow_(g,r,monthIdx){
+function addRow_(g,r,timeIdx){
   if(r.qty>=0)g.shipQty+=r.qty;else g.retQty+=r.qty;
   g.saleQty+=r.qty; g.supply+=r.supply;
   if(r.saleNo)g.saleNos[r.saleNo]=1;
@@ -503,19 +612,29 @@ function addRow_(g,r,monthIdx){
   // 대표규격명용: SKU당 itemName 하나만 수집 (skuSet으로 중복 방지)
   if(r.itemName && !g.skuSet[r.sku] && g.itemNames.length<50)
     g.itemNames.push(r.itemName);
-  // 월별 판매수량 누적
-  if(monthIdx){
+  // 타임컬럼별 판매수량 누적 (timeCols 기반)
+  if(timeIdx){
     var mk=r.year+'-'+(r.month<10?'0':'')+r.month;
-    if(monthIdx[mk]!==undefined){
-      if(!g.monthly.length){ for(var i=0;i<monthIdx._n;i++) g.monthly.push(0); }
-      g.monthly[monthIdx[mk]]+=r.qty;
+    var ci=timeIdx[mk];
+    if(ci!==undefined){
+      if(!g.monthly.length){ for(var i=0;i<timeIdx._n;i++) g.monthly.push(0); }
+      g.monthly[ci]+=r.qty;
     }
   }
 }
 
-function aggregate_(rows,groupBy,months){
-  var monthIdx=null;
-  if(months&&months.length){ monthIdx={_n:months.length}; months.forEach(function(m,i){monthIdx[m]=i;}); }
+// timeCols → month→colIndex 역매핑 생성
+function buildTimeIdx_(timeCols){
+  if(!timeCols||!timeCols.length) return null;
+  var idx={_n:timeCols.length};
+  timeCols.forEach(function(col,ci){
+    col.months.forEach(function(mk){ idx[mk]=ci; });
+  });
+  return idx;
+}
+
+function aggregate_(rows,groupBy,timeCols){
+  var timeIdx=buildTimeIdx_(timeCols);
   var groups={};
   rows.forEach(function(r){
     var key=groupBy==='customer' ? r.customer
@@ -529,7 +648,7 @@ function aggregate_(rows,groupBy,months){
       groups[key]=makeGroup_(key,r);
       if(groupBy==='series') groups[key].key=r.seriesLabel||key;
     }
-    addRow_(groups[key],r,monthIdx);
+    addRow_(groups[key],r,timeIdx);
     if(groupBy==='series') groups[key].skuSet[r.sku]=1;
   });
   return Object.keys(groups).map(function(k){return finalizeGroup_(groups[k]);})
@@ -539,7 +658,7 @@ function aggregate_(rows,groupBy,months){
 // 통합 교차 집계: { groupKey: [ {sku,itemName,...,avgPrice, monthly[], pctInGroup}, ... ] }
 // 모든 비-SKU 뷰(시리즈/거래처/월/거래유형)의 아코디언에서 하위 SKU 목록 표시용.
 // 월별 판매수량과 그룹 내 비중까지 포함하여 SKU탭과 동일 그리드를 만들 수 있게 함.
-function aggregateCross_(rows,groupBy,months){
+function aggregateCross_(rows,groupBy,timeCols){
   function groupKeyOf(r){
     return groupBy==='customer'?r.customer
          :groupBy==='month'?r.year+'-'+(r.month<10?'0':'')+r.month
@@ -547,19 +666,23 @@ function aggregateCross_(rows,groupBy,months){
          :groupBy==='series'?(r.seriesLabel||r.seriesKey)
          :r.sku;
   }
-  var monthIdx={}; (months||[]).forEach(function(m,i){monthIdx[m]=i;});
+  var timeIdx=buildTimeIdx_(timeCols);
+  var nCols=(timeCols||[]).length;
   var cross={};
   rows.forEach(function(r){
     var gk=groupKeyOf(r);
     if(!cross[gk])cross[gk]={};
     if(!cross[gk][r.sku])cross[gk][r.sku]={sku:r.sku,itemName:r.itemName,
       shipQty:0,retQty:0,saleQty:0,supply:0,
-      monthly:(months||[]).map(function(){return 0;})};
+      monthly:new Array(nCols).fill(0)};
     var g=cross[gk][r.sku];
     if(r.qty>=0)g.shipQty+=r.qty;else g.retQty+=r.qty;
     g.saleQty+=r.qty;g.supply+=r.supply;
-    var mk=r.year+'-'+(r.month<10?'0':'')+r.month;
-    if(monthIdx[mk]!==undefined) g.monthly[monthIdx[mk]]+=r.qty;
+    if(timeIdx){
+      var mk=r.year+'-'+(r.month<10?'0':'')+r.month;
+      var ci=timeIdx[mk];
+      if(ci!==undefined) g.monthly[ci]+=r.qty;
+    }
   });
   var result={};
   Object.keys(cross).forEach(function(gk){
@@ -596,6 +719,60 @@ function commonPrefix_(names){
     common.push(t);
   }
   return common.join(' ');
+}
+
+// 연도별 breakdown: 그룹 행의 연도별 판매수량·매출액·평균단가
+// 반환: { groupKey: [{year, saleQty, supply, avgPrice}, ...] }
+// effectiveGroupBy에 따라 groupKey를 결정
+function aggregateYearBreak_(rows, groupBy, years){
+  function groupKeyOf(r){
+    return groupBy==='customer'?r.customer
+         :groupBy==='month'?r.year+'-'+(r.month<10?'0':'')+r.month
+         :groupBy==='txtype'?r.txType
+         :groupBy==='series'?(r.seriesLabel||r.seriesKey)
+         :r.sku;
+  }
+  // {groupKey: {year: {saleQty, supply}}}
+  var acc={};
+  rows.forEach(function(r){
+    var gk=groupKeyOf(r);
+    var yr=String(r.year);
+    if(!acc[gk]) acc[gk]={};
+    if(!acc[gk][yr]) acc[gk][yr]={saleQty:0, supply:0};
+    acc[gk][yr].saleQty+=r.qty;
+    acc[gk][yr].supply+=r.supply;
+  });
+  // 연도 순서대로 배열로 변환 + avgPrice 계산
+  var result={};
+  Object.keys(acc).forEach(function(gk){
+    result[gk]=years.map(function(yr){
+      var d=acc[gk][yr]||{saleQty:0,supply:0};
+      return {
+        year:yr,
+        saleQty:d.saleQty,
+        supply:d.supply,
+        avgPrice:d.saleQty>0?Math.round(d.supply/d.saleQty):0
+      };
+    });
+  });
+  // 전체 합계 행용 ('_TOTAL_' 키)
+  var totalByYear={};
+  rows.forEach(function(r){
+    var yr=String(r.year);
+    if(!totalByYear[yr]) totalByYear[yr]={saleQty:0,supply:0};
+    totalByYear[yr].saleQty+=r.qty;
+    totalByYear[yr].supply+=r.supply;
+  });
+  result['_TOTAL_']=years.map(function(yr){
+    var d=totalByYear[yr]||{saleQty:0,supply:0};
+    return {
+      year:yr,
+      saleQty:d.saleQty,
+      supply:d.supply,
+      avgPrice:d.saleQty>0?Math.round(d.supply/d.saleQty):0
+    };
+  });
+  return result;
 }
 
 function aggregateMonthly_(rows){
@@ -652,29 +829,31 @@ function buildDefaultCatData_(){
 
 // SKU × 월 매트릭스
 // 반환: { months:['2026-01',...], skus:{ SKU:{itemName, monthly:[qty,...], total} } }
-function aggregateSkuMonthly_(rows){
-  var monthSet={}, skuMap={};
+// SKU별 타임컬럼 집계 (SKU뷰 메인 행의 타임컬럼 수량)
+function aggregateSkuMonthlyByTimeCols_(rows, timeCols){
+  var timeIdx=buildTimeIdx_(timeCols);
+  var nCols=(timeCols||[]).length;
+  var skuMap={};
   rows.forEach(function(r){
-    var mk=r.year+'-'+(r.month<10?'0':'')+r.month;
-    monthSet[mk]=1;
-    if(!skuMap[r.sku]) skuMap[r.sku]={itemName:r.itemName,months:{},supply:0};
-    skuMap[r.sku].months[mk]=(skuMap[r.sku].months[mk]||0)+r.qty;
+    if(!skuMap[r.sku]) skuMap[r.sku]={itemName:r.itemName,supply:0,
+      monthly:new Array(nCols).fill(0)};
     skuMap[r.sku].supply+=r.supply;
+    if(timeIdx){
+      var mk=r.year+'-'+(r.month<10?'0':'')+r.month;
+      var ci=timeIdx[mk];
+      if(ci!==undefined) skuMap[r.sku].monthly[ci]+=r.qty;
+    }
   });
-  var months=Object.keys(monthSet).sort();
-  // supply 상위 20개 SKU만 전송 (데이터 크기 제한)
+  // supply 상위 50개 SKU만 전송
   var skuList=Object.keys(skuMap).sort(function(a,b){
     return skuMap[b].supply-skuMap[a].supply;
-  }).slice(0,20);
+  }).slice(0,50);
   var result={};
   skuList.forEach(function(sku){
-    result[sku]={
-      itemName: skuMap[sku].itemName,
-      supply:   skuMap[sku].supply,
-      monthly:  months.map(function(m){ return skuMap[sku].months[m]||0; })
-    };
+    result[sku]={itemName:skuMap[sku].itemName, supply:skuMap[sku].supply,
+                 monthly:skuMap[sku].monthly};
   });
-  return {months:months, skus:result};
+  return {cols:timeCols, skus:result};
 }
 
 // 반품 인사이트: SKU × 거래처 반품 집계
