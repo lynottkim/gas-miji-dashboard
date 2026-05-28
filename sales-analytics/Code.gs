@@ -1,12 +1,12 @@
 // ============================================================
-//  미지세계 매출 분석 대시보드  —  Code.gs  v6.2
+//  미지세계 매출 분석 대시보드  —  Code.gs  v6.5
 // ============================================================
 // ★★ 배포 전환 — 아래 한 줄만 바꾸면 됩니다 ★★
 var DEPLOY_MODE = 'sena';    // 'sena' | 'multi'
 // var DEPLOY_MODE = 'multi'; // ← 멀티브랜드 배포 시 위 줄과 교체
 
 // ── 공통 설정 (양쪽 배포 동일) ──────────────────────────────
-var VERSION = 'v6.2';
+var VERSION = 'v6.5';
 
 // ── SENA 배포 설정 ───────────────────────────────────────────
 var CONFIG_SENA = {
@@ -125,6 +125,7 @@ function getMetadata() {
       txTypes:Object.keys(txTypes).sort(),
       categoryMap:catData.map, primaryCats:catData.primaries,
       tags:catData.tags, skuMeta:catData.skuMeta,
+      seriesList:catData.seriesList||[],
       mode:           CONFIG.MODE,
       dashboardTitle: CONFIG.DASHBOARD_TITLE,
       version:        CONFIG.VERSION||'',
@@ -575,8 +576,9 @@ function loadRows_(filters,skuMeta){
         // CATEGORY_MAP에서 가져온 분류 정보
         primaryCat: meta?meta.primaryCat:'',
         familyTag:  meta?(meta.series||getFamilyTag_(meta.tags)):'',
-        seriesKey: seriesKey,       // 시리즈뷰 그룹 키
-        seriesLabel: seriesLabel    // 시리즈뷰 표시명
+        seriesKey: seriesKey,
+        seriesLabel: seriesLabel,
+        unitCount: (meta&&meta.unitCount>1)?meta.unitCount:1  // 유닛환산: 듀얼=2, 쿼드=4
       });
     }
   });
@@ -586,7 +588,7 @@ function loadRows_(filters,skuMeta){
 // ── 집계 함수들 ────────────────────────────────────────────
 function makeGroup_(key,r,nMonths){
   return {key:key,sku:r.sku,itemName:r.itemName,
-          shipQty:0,retQty:0,saleQty:0,supply:0,saleNos:{},
+          shipQty:0,retQty:0,saleQty:0,unitSaleQty:0,supply:0,saleNos:{},
           catSet:{},skuSet:{},
           itemNames:[],  // 시리즈뷰 대표규격명 계산용
           monthly:[]};
@@ -606,12 +608,16 @@ function finalizeGroup_(g){
 }
 function addRow_(g,r,timeIdx){
   if(r.qty>=0)g.shipQty+=r.qty;else g.retQty+=r.qty;
-  g.saleQty+=r.qty; g.supply+=r.supply;
+  g.saleQty+=r.qty;
+  // 유닛 환산 수량 (듀얼=qty×2, 쿼드=qty×4)
+  g.unitSaleQty+=(r.unitCount||1)*r.qty;
+  g.supply+=r.supply;
   if(r.saleNo)g.saleNos[r.saleNo]=1;
   if(r.primaryCat) g.catSet[r.primaryCat]=(g.catSet[r.primaryCat]||0)+1;
   // 대표규격명용: SKU당 itemName 하나만 수집 (skuSet으로 중복 방지)
   if(r.itemName && !g.skuSet[r.sku] && g.itemNames.length<50)
     g.itemNames.push(r.itemName);
+  if(r.sku) g.skuSet[r.sku]=1;
   // 타임컬럼별 판매수량 누적 (timeCols 기반)
   if(timeIdx){
     var mk=r.year+'-'+(r.month<10?'0':'')+r.month;
@@ -673,11 +679,13 @@ function aggregateCross_(rows,groupBy,timeCols){
     var gk=groupKeyOf(r);
     if(!cross[gk])cross[gk]={};
     if(!cross[gk][r.sku])cross[gk][r.sku]={sku:r.sku,itemName:r.itemName,
-      shipQty:0,retQty:0,saleQty:0,supply:0,
+      shipQty:0,retQty:0,saleQty:0,unitSaleQty:0,supply:0,
       monthly:new Array(nCols).fill(0)};
     var g=cross[gk][r.sku];
     if(r.qty>=0)g.shipQty+=r.qty;else g.retQty+=r.qty;
-    g.saleQty+=r.qty;g.supply+=r.supply;
+    g.saleQty+=r.qty;
+    g.unitSaleQty+=(r.unitCount||1)*r.qty;
+    g.supply+=r.supply;
     if(timeIdx){
       var mk=r.year+'-'+(r.month<10?'0':'')+r.month;
       var ci=timeIdx[mk];
@@ -732,45 +740,37 @@ function aggregateYearBreak_(rows, groupBy, years){
          :groupBy==='series'?(r.seriesLabel||r.seriesKey)
          :r.sku;
   }
-  // {groupKey: {year: {saleQty, supply}}}
   var acc={};
   rows.forEach(function(r){
     var gk=groupKeyOf(r);
     var yr=String(r.year);
     if(!acc[gk]) acc[gk]={};
-    if(!acc[gk][yr]) acc[gk][yr]={saleQty:0, supply:0};
+    if(!acc[gk][yr]) acc[gk][yr]={saleQty:0, unitSaleQty:0, supply:0};
     acc[gk][yr].saleQty+=r.qty;
+    acc[gk][yr].unitSaleQty+=(r.unitCount||1)*r.qty;
     acc[gk][yr].supply+=r.supply;
   });
-  // 연도 순서대로 배열로 변환 + avgPrice 계산
   var result={};
   Object.keys(acc).forEach(function(gk){
     result[gk]=years.map(function(yr){
-      var d=acc[gk][yr]||{saleQty:0,supply:0};
-      return {
-        year:yr,
-        saleQty:d.saleQty,
-        supply:d.supply,
-        avgPrice:d.saleQty>0?Math.round(d.supply/d.saleQty):0
-      };
+      var d=acc[gk][yr]||{saleQty:0,unitSaleQty:0,supply:0};
+      return {year:yr, saleQty:d.saleQty, unitSaleQty:d.unitSaleQty,
+              supply:d.supply, avgPrice:d.saleQty>0?Math.round(d.supply/d.saleQty):0};
     });
   });
   // 전체 합계 행용 ('_TOTAL_' 키)
   var totalByYear={};
   rows.forEach(function(r){
     var yr=String(r.year);
-    if(!totalByYear[yr]) totalByYear[yr]={saleQty:0,supply:0};
+    if(!totalByYear[yr]) totalByYear[yr]={saleQty:0, unitSaleQty:0, supply:0};
     totalByYear[yr].saleQty+=r.qty;
+    totalByYear[yr].unitSaleQty+=(r.unitCount||1)*r.qty;
     totalByYear[yr].supply+=r.supply;
   });
   result['_TOTAL_']=years.map(function(yr){
-    var d=totalByYear[yr]||{saleQty:0,supply:0};
-    return {
-      year:yr,
-      saleQty:d.saleQty,
-      supply:d.supply,
-      avgPrice:d.saleQty>0?Math.round(d.supply/d.saleQty):0
-    };
+    var d=totalByYear[yr]||{saleQty:0,unitSaleQty:0,supply:0};
+    return {year:yr, saleQty:d.saleQty, unitSaleQty:d.unitSaleQty,
+            supply:d.supply, avgPrice:d.saleQty>0?Math.round(d.supply/d.saleQty):0};
   });
   return result;
 }
@@ -894,7 +894,7 @@ function loadCategoryMap_(ss){
       : buildDefaultCatData_();
   }
   var data=sh.getDataRange().getValues();
-  var map={},skuMeta={},primSet={},tagSet={};
+  var map={},skuMeta={},primSet={},tagSet={},seriesSet={};
   for(var i=1;i<data.length;i++){
     var row=data[i];
     var cat=String(row[0]).trim(),sku=String(row[1]).trim();
@@ -906,12 +906,20 @@ function loadCategoryMap_(ss){
     var tags=tagsRaw?tagsRaw.split('|').map(function(t){return t.trim();}):[];
     var brand=cat.indexOf('/')!==-1?cat.split('/')[0]:(tags[0]||'');
     var series=row.length>6?String(row[6]).trim():'';
-    // series 없으면 tags에서 Family 추출 (하위 호환)
     if(!series&&brand==='KLIM') series=getFamilyTag_(tags);
+    // unit_count: 8번째 컬럼(index 7), 공란=1
+    var unitCount=1;
+    if(row.length>7){
+      var uc=row[7];
+      if(uc!==''&&uc!==null&&!isNaN(Number(uc))&&Number(uc)>0)
+        unitCount=Math.round(Number(uc));
+    }
     skuMeta[sku]={primaryCat:primary,tags:tags,seasonal:seasonal,
-                  itemName:itemName,brand:brand,series:series};
+                  itemName:itemName,brand:brand,series:series,
+                  unitCount:unitCount};
     if(primary) primSet[primary]=1;
     tags.forEach(function(t){if(t)tagSet[t]=1;});
+    if(series) seriesSet[series]=1;
   }
   if(!Object.keys(map).length){
     return CONFIG.MODE==='multi'
@@ -919,7 +927,8 @@ function loadCategoryMap_(ss){
       : buildDefaultCatData_();
   }
   return {map:map,primaries:Object.keys(primSet).sort(),
-          tags:Object.keys(tagSet).sort(),skuMeta:skuMeta};
+          tags:Object.keys(tagSet).sort(),skuMeta:skuMeta,
+          seriesList:Object.keys(seriesSet).sort()};
 }
 
 // ── 멀티브랜드 카테고리 자동 파싱 ─────────────────────────
