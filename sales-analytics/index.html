@@ -174,12 +174,13 @@ thead th[data-tip]:hover::after{
 .chart-legend-item{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--muted)}
 .chart-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 /* 월별 수량 셀 (보조 정보) */
-.mq{font-size:10px;color:#334155;text-align:right;padding:4px 4px!important}  /* 숫자있는칸: 진하게 */
+.mq{font-size:10px;color:#334155;text-align:right;padding:4px 4px!important;font-variant-numeric:tabular-nums}
+.mn{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.mn.neg{color:var(--red)!important}
 .mq-0{color:#cbd5e1}   /* 0: 흐리게 */
 .mq-na{color:#e2e8f0;font-style:italic}
 .mq-hdr{font-size:9px;padding:5px 4px!important;white-space:nowrap;color:#64748b}
 /* 주요 합계 수치 (출고/반품/판매/매출 — 진하게) */
-.mn{color:var(--text);font-weight:600}
 .mn.neg{color:var(--red)!important}
 
 /* 결과 패널 */
@@ -218,7 +219,7 @@ thead th.L{text-align:left}
 thead th:hover{color:var(--blue)}
 tbody tr{border-bottom:1px solid var(--bd);vertical-align:top}
 tbody tr:hover{background:#eff6ff}
-tbody td{padding:5px 8px;text-align:right;overflow:hidden;text-overflow:ellipsis}
+tbody td{padding:5px 8px;text-align:right;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 tbody td.L{text-align:left}
 tfoot td{padding:6px 8px;text-align:right;font-weight:700;border-top:2px solid var(--bd);background:var(--light);vertical-align:top}
 tfoot td.L{text-align:left}
@@ -228,7 +229,7 @@ tfoot td.L{text-align:left}
 @keyframes sp{to{transform:rotate(360deg)}}
 
 /* 비중 바 */
-/* bar-w/bg/f/p 제거됨 v6.2 — 비중은 숫자만 표시 */
+/* bar-w/bg/f/p 제거됨 v6.5 — 비중은 숫자만 표시 */
 
 /* 반품율·트렌드 뱃지 */
 .rb{display:inline-block;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:600}
@@ -237,6 +238,8 @@ tfoot td.L{text-align:left}
 
 .bar-tab{padding:2px 7px;border:1px solid var(--bd);border-radius:2px;font-size:10px;cursor:pointer;background:var(--bg);margin-left:2px}
 .bar-tab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.donut-tab{padding:1px 5px;border:1px solid var(--bd);border-radius:2px;font-size:9px;cursor:pointer;background:var(--bg);margin-left:2px}
+.donut-tab.on{background:var(--sky);color:#fff;border-color:var(--sky)}
 /* 연도 버튼형 */
 .yr-btn{padding:3px 9px;border:1px solid var(--bd);border-radius:2px;font-size:11px;
         cursor:pointer;background:var(--bg);font-weight:500;white-space:nowrap;transition:background .15s,color .15s}
@@ -362,6 +365,24 @@ tfoot td.L{text-align:left}
         ✓ 적용
       </button>
       <div id="yr-apply-status" style="font-size:10px;color:var(--muted);margin-top:3px;min-height:14px"></div>
+    </div>
+
+    <div class="fs" id="series-search-section">
+      <div class="fst">시리즈 <span style="font-size:9px;color:var(--muted)">(텍스트 검색)</span></div>
+      <div style="position:relative">
+        <input type="text" id="series-search-input"
+          placeholder="시리즈명 검색..."
+          oninput="onSeriesSearchInput(this.value)"
+          onblur="setTimeout(function(){hideSeriesDropdown();},200)"
+          autocomplete="off"
+          style="width:100%;padding:5px 8px;border:1px solid var(--bd);font-size:11px;
+                 font-family:var(--font-ui);background:var(--bg)">
+        <div id="series-search-dropdown"
+          style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;
+                 background:var(--panel);border:1px solid var(--bd);max-height:160px;overflow-y:auto;
+                 box-shadow:var(--sh)"></div>
+      </div>
+      <div id="series-search-tags" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px"></div>
     </div>
 
     <div class="fs">
@@ -492,11 +513,27 @@ tfoot td.L{text-align:left}
         <div class="chart-legend" id="chart-legend"></div>
       </div>
       <div class="cpanel">
-        <div class="ctitle" id="donut-title-s">매출액 비중</div>
+        <div class="ctitle" style="gap:4px">
+          <span style="flex-shrink:0">매출액 비중</span>
+          <span id="donut-tabs-s" style="margin-left:4px">
+            <button class="donut-tab on" data-field="supply" data-donut="s" data-by="auto" onclick="setDonutBy('s',this)">자동</button>
+            <button class="donut-tab" data-field="supply" data-donut="s" data-by="series" onclick="setDonutBy('s',this)">시리즈</button>
+            <button class="donut-tab" data-field="supply" data-donut="s" data-by="primaryCat" onclick="setDonutBy('s',this)">카테고리</button>
+            <button class="donut-tab" data-field="supply" data-donut="s" data-by="sku" onclick="setDonutBy('s',this)">SKU</button>
+          </span>
+        </div>
         <svg id="chart-donut-s" width="100%" height="160" style="display:block;overflow:visible"></svg>
       </div>
       <div class="cpanel">
-        <div class="ctitle" id="donut-title-q">판매수량 비중</div>
+        <div class="ctitle" style="gap:4px">
+          <span style="flex-shrink:0">판매수량 비중</span>
+          <span id="donut-tabs-q" style="margin-left:4px">
+            <button class="donut-tab on" data-field="saleQty" data-donut="q" data-by="auto" onclick="setDonutBy('q',this)">자동</button>
+            <button class="donut-tab" data-field="saleQty" data-donut="q" data-by="series" onclick="setDonutBy('q',this)">시리즈</button>
+            <button class="donut-tab" data-field="saleQty" data-donut="q" data-by="primaryCat" onclick="setDonutBy('q',this)">카테고리</button>
+            <button class="donut-tab" data-field="saleQty" data-donut="q" data-by="sku" onclick="setDonutBy('q',this)">SKU</button>
+          </span>
+        </div>
         <svg id="chart-donut-q" width="100%" height="160" style="display:block;overflow:visible"></svg>
       </div>
     </div>
@@ -515,6 +552,13 @@ tfoot td.L{text-align:left}
           <button onclick="setGroup('month',this)">월별</button>
           <button onclick="setGroup('txtype',this)">거래유형</button>
         </div>
+        <!-- 유닛 환산 토글: SENA 전용, onMeta에서 표시/숨김 -->
+        <button id="btn-unit-conv" onclick="toggleUnitConv(this)"
+          style="display:none;padding:2px 8px;border:1px solid #8b5cf6;font-size:10px;
+                 cursor:pointer;background:var(--bg);color:#8b5cf6;font-weight:600;margin-right:4px"
+          title="듀얼팩=×2, 쿼드팩=×4 기준 유닛 환산 수량 표시">
+          유닛환산
+        </button>
         <button class="csv-btn" onclick="doCSV()">⬇ CSV</button>
       </div>
       <div class="twrap">
@@ -525,7 +569,7 @@ tfoot td.L{text-align:left}
       </div>
     </div>
 
-    <!-- 반품 인사이트 패널 제거됨 (v6.2) -->
+    <!-- 반품 인사이트 패널 제거됨 (v6.5) -->
 
     <!-- 발주 예측 버튼 -->
     <div id="fc-btn-wrap">
@@ -588,13 +632,16 @@ var G = {
   yearBreak:null, selectedYears:[], prevYrData:[], fcData:[],
   unmappedSkus:[], ssUrl:'',
   scriptUrl:'', loadedYears:[], allCustomers:[], allTxTypes:[],
+  seriesList:[],  // 시리즈 검색용
+  showUnitConv:false,  // 유닛 환산 표시 토글 (SENA 전용)
   mode:'sena',
   showPrevYr:false, showForecast:false,
   donutField:'supply', groupBy:'series', barMode:'supply',
+  donutByS:'auto', donutByQ:'auto',  // 도넛 기준: auto|series|primaryCat|sku
   sortCol:'supply', sortDir:-1,
   fcSortCol:'dataMonths', fcSortDir:-1,
   sel:{years:[],months:[],df:'',dt:'',primaryCat:'',tags:[],skus:[],
-       customers:[],txTypes:[],brands:[]}
+       customers:[],txTypes:[],brands:[],series:[]}
 };
 var CURRENT_YEAR = String(new Date().getFullYear());
 var dlgResolve = null;
@@ -740,6 +787,7 @@ function onMeta(r){
   G.meta=r; G.scriptUrl=r.scriptUrl||'';
   G.mode=r.mode||'sena';
   G.allCustomers=r.customers.slice(); G.allTxTypes=r.txTypes.slice();
+  G.seriesList=r.seriesList||[];
   G.loadedYears=[r.years[0]];
   dbg('연도: '+r.years.join(', '),'ok');
   dbg('주카테고리: '+r.primaryCats.join(', '),'ok');
@@ -796,6 +844,11 @@ function onMeta(r){
   } else {
     showBrandFilter(false);
   }
+  // SENA 전용: 유닛환산 버튼 표시, 시리즈 검색 섹션 표시
+  var unitBtn=document.getElementById('btn-unit-conv');
+  if(unitBtn) unitBtn.style.display=(G.mode==='sena')?'':'none';
+  var sss=document.getElementById('series-search-section');
+  if(sss) sss.style.display='';
   showSeriesTab(true);
 
   presetCurrentYear(r.years);
@@ -973,6 +1026,99 @@ function buildTagGrid(tags){
   });
 }
 
+// ── 시리즈 검색 ─────────────────────────────────────────────
+function onSeriesSearchInput(val){
+  var dd=document.getElementById('series-search-dropdown');
+  if(!val.trim()){dd.style.display='none';return;}
+  var lv=val.trim().toLowerCase();
+  var matches=(G.seriesList||[]).filter(function(s){
+    return s.toLowerCase().indexOf(lv)!==-1;
+  }).slice(0,12);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML='';
+  matches.forEach(function(s){
+    var item=document.createElement('div');
+    item.style.cssText='padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--bd)';
+    item.textContent=s;
+    item.onmouseenter=function(){this.style.background='#eff6ff';};
+    item.onmouseleave=function(){this.style.background='';};
+    item.onmousedown=function(e){e.preventDefault();selectSeries(s);};
+    dd.appendChild(item);
+  });
+  dd.style.display='';
+}
+function hideSeriesDropdown(){
+  var dd=document.getElementById('series-search-dropdown');
+  if(dd) dd.style.display='none';
+}
+function selectSeries(seriesName){
+  // 이미 선택됐으면 무시
+  if(G.sel.series&&G.sel.series.indexOf(seriesName)!==-1) return;
+  if(!G.sel.series) G.sel.series=[];
+  G.sel.series.push(seriesName);
+  renderSeriesTags();
+  var inp=document.getElementById('series-search-input');
+  if(inp){inp.value='';hideSeriesDropdown();}
+  // 해당 시리즈의 SKU로 G.sel.skus 자동 필터링
+  updateSkusBySeries();
+}
+function removeSeriesTag(seriesName){
+  G.sel.series=(G.sel.series||[]).filter(function(s){return s!==seriesName;});
+  renderSeriesTags();
+  updateSkusBySeries();
+}
+function renderSeriesTags(){
+  var container=document.getElementById('series-search-tags');
+  if(!container) return;
+  container.innerHTML='';
+  (G.sel.series||[]).forEach(function(s){
+    var tag=document.createElement('span');
+    tag.style.cssText='display:inline-flex;align-items:center;gap:3px;padding:2px 7px;'+
+      'background:#eff6ff;border:1px solid var(--blue);font-size:10px;color:var(--blue)';
+    tag.innerHTML=esc(s)+'<span onclick="removeSeriesTag(\''+esc(s)+'\''+')" '+
+      'style="cursor:pointer;font-size:12px;margin-left:2px;color:#94a3b8">×</span>';
+    container.appendChild(tag);
+  });
+}
+function updateSkusBySeries(){
+  // 선택된 시리즈에 속하는 SKU 목록으로 G.sel.skus를 채움
+  if(!G.meta||!G.sel.series||!G.sel.series.length){
+    G.sel.skus=[];
+    buildSkuDD(G.meta?G.meta.categoryMap||{}:{}, null);
+    return;
+  }
+  var skuMeta=G.meta.skuMeta||{};
+  var skus=Object.keys(skuMeta).filter(function(sku){
+    return G.sel.series.indexOf(skuMeta[sku].series)!==-1;
+  });
+  G.sel.skus=skus;
+  buildSkuDD(G.meta.categoryMap||{}, skus);
+  // sel-sku 표시 업데이트
+  var display=document.getElementById('sel-sku');
+  if(display) display.innerHTML=skus.length?
+    '<span style="color:var(--blue);font-size:10px">'+skus.length+'개 SKU</span>':
+    '<span class="ph">전체</span>';
+  var hint=document.getElementById('sku-hint');
+  if(hint) hint.textContent=skus.length?'('+skus.length+'개)':'';
+}
+
+// ── 유닛 환산 토글 (SENA 전용) ──────────────────────────────
+function toggleUnitConv(btn){
+  G.showUnitConv=!G.showUnitConv;
+  // OFF: 보라 테두리+보라 텍스트 (미리보기), ON: 보라 채움+흰 텍스트 (활성)
+  if(G.showUnitConv){
+    btn.style.background='#8b5cf6';
+    btn.style.color='#fff';
+    btn.style.borderColor='#8b5cf6';
+  } else {
+    btn.style.background='var(--bg)';
+    btn.style.color='#8b5cf6';
+    btn.style.borderColor='#8b5cf6';
+  }
+  if(G.data.length) renderTable(G.data);
+  if(G.data.length) renderCards(G.data);
+}
+
 function buildSkuDD(catMap,filterSkus){
   var list=document.getElementById('list-sku'); clearDD(list);
   var skus=[];
@@ -1102,7 +1248,7 @@ function runQuery(){
       renderUnmapBanner(G.unmappedSkus, G.ssUrl);
       setMsg(''); document.getElementById('tbl').style.display='';
       updateFcBtn();
-      // 전년비교 기능 제거됨 v6.2
+      // 전년비교 기능 제거됨 v6.5
     })
     .withFailureHandler(function(e){dbg('조회 실패: '+e.message,'err');setMsg('오류: '+e.message);})
     .getFilteredData(filters);
@@ -1299,11 +1445,20 @@ function buildFilters(){
 // 요약 카드
 // ══════════════════════════════════════
 function renderCards(data){
-  var ship=0,ret=0,sale=0,sup=0;
-  data.forEach(function(r){ship+=r.shipQty;ret+=r.retQty;sale+=r.saleQty;sup+=r.supply;});
+  var ship=0,ret=0,sale=0,unitSale=0,sup=0;
+  data.forEach(function(r){
+    ship+=r.shipQty;ret+=r.retQty;sale+=r.saleQty;
+    unitSale+=(r.unitSaleQty||r.saleQty);
+    sup+=r.supply;
+  });
   var retRate=ship>0?(Math.abs(ret)/ship*100).toFixed(1):0;
   var avg=sale>0?Math.round(sup/sale):0;
-  set('c-ship',fn(ship)); set('c-ret',fn(ret)); set('c-sale',fn(sale));
+  // 판매수량 카드: 유닛 환산 ON이면 유닛 수치 병기
+  var saleDisplay=fn(sale);
+  if(G.showUnitConv)
+    saleDisplay+=' <span style="font-size:12px;color:#8b5cf6;margin-left:3px">'+fn(unitSale)+'</span>';
+  set('c-ship',fn(ship)); set('c-ret',fn(ret));
+  document.getElementById('c-sale').innerHTML=saleDisplay;
   var re=document.getElementById('c-rate');
   re.textContent=retRate+'%'; re.className='val '+(retRate>10?'neg':retRate>5?'warn':'pos');
   set('c-rate-sub',retRate>10?'⚠ 주의':retRate>5?'관리 필요':'정상');
@@ -1323,8 +1478,11 @@ function renderCards(data){
       var dot='<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+
               YR_DOT_COLORS[i%YR_DOT_COLORS.length]+';margin-right:3px;vertical-align:middle"></span>';
       var yr=yd.year.toString().slice(2)+'년';
+      var saleVal=fn(yd.saleQty);
+      if(G.showUnitConv&&yd.unitSaleQty!==undefined)
+        saleVal+=' <span style="font-size:10px;color:#8b5cf6">'+fn(yd.unitSaleQty)+'</span>';
       saleHtml+='<div>'+dot+'<span style="font-size:10px;color:var(--muted);margin-right:2px">'+yr+'</span>'+
-                '<span style="font-size:11px;font-family:var(--font-num)">'+fn(yd.saleQty)+'</span></div>';
+                '<span style="font-size:11px;font-family:var(--font-num)">'+saleVal+'</span></div>';
       revHtml +='<div>'+dot+'<span style="font-size:10px;color:var(--muted);margin-right:2px">'+yr+'</span>'+
                 '<span style="font-size:11px;font-family:var(--font-num)">'+fn(yd.supply)+'</span></div>';
       avgHtml +='<div>'+dot+'<span style="font-size:10px;color:var(--muted);margin-right:2px">'+yr+'</span>'+
@@ -1430,22 +1588,84 @@ function renderBarChart(monthly){
 }
 
 // ══════════════════════════════════════
-// 도넛 2개 — 항상 동시 렌더링
+// 도넛 2개 — 탭별 기준 선택 가능
 // ══════════════════════════════════════
+// 도넛 탭 클릭 핸들러
+function setDonutBy(donutId, btn){
+  var tabs=document.querySelectorAll('#donut-tabs-'+donutId+' .donut-tab');
+  tabs.forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  if(donutId==='s') G.donutByS=btn.getAttribute('data-by');
+  else G.donutByQ=btn.getAttribute('data-by');
+  renderDonut();
+}
+
+// 도넛 기준 결정: auto면 현재 groupBy 기반, 아니면 명시된 기준
+function resolveDonutData(byMode){
+  if(!G.data||!G.data.length) return [];
+  // auto: 현재 groupBy에 가장 맞는 기준으로 자동 결정
+  var effectiveBy = byMode;
+  if(byMode==='auto'){
+    // 시리즈뷰에서 시리즈가 1개 이하면 SKU로 자동 전환 (더 의미있음)
+    if(G.groupBy==='series'&&G.data.length<=3) effectiveBy='sku';
+    else effectiveBy=G.groupBy;
+  }
+
+  // SKU 기준: G.skuAgg (뷰와 무관하게 SKU별 전체 집계)
+  if(effectiveBy==='sku'){
+    if(G.skuAgg&&G.skuAgg.length)
+      return G.skuAgg.map(function(r){
+        return {key:r.sku||r.key, supply:r.supply, saleQty:r.saleQty};
+      });
+    // skuAgg 없으면 G.data에서 sku 키로
+    return G.data.map(function(r){return {key:r.sku||r.key, supply:r.supply, saleQty:r.saleQty};});
+  }
+
+  // 주카테고리 기준: G.catBreak (백엔드에서 직접 집계)
+  if(effectiveBy==='primaryCat'){
+    if(G.catBreak&&G.catBreak.length)
+      return G.catBreak.map(function(r){
+        return {key:r.key||r.primaryCat||'기타', supply:r.supply, saleQty:r.saleQty};
+      });
+    // catBreak 없으면 skuAgg/data에서 재집계
+    var src=G.skuAgg&&G.skuAgg.length?G.skuAgg:G.data;
+    var acc={};
+    src.forEach(function(r){
+      var cat=(G.meta&&G.meta.skuMeta&&G.meta.skuMeta[r.sku||r.key])
+              ?G.meta.skuMeta[r.sku||r.key].primaryCat:'기타';
+      if(!cat) cat='기타';
+      if(!acc[cat]) acc[cat]={key:cat,supply:0,saleQty:0};
+      acc[cat].supply+=r.supply; acc[cat].saleQty+=r.saleQty;
+    });
+    return Object.values(acc).sort(function(a,b){return b.supply-a.supply;});
+  }
+
+  // 시리즈 기준
+  if(effectiveBy==='series'){
+    if(G.groupBy==='series')
+      return G.data.map(function(r){return {key:r.key, supply:r.supply, saleQty:r.saleQty};});
+    // 현재 뷰가 시리즈 아니면 skuAgg에서 시리즈 재집계
+    var src2=G.skuAgg&&G.skuAgg.length?G.skuAgg:G.data;
+    var acc2={};
+    src2.forEach(function(r){
+      var s=(G.meta&&G.meta.skuMeta&&G.meta.skuMeta[r.sku||r.key])
+             ?G.meta.skuMeta[r.sku||r.key].series:'기타';
+      if(!s) s='기타';
+      if(!acc2[s]) acc2[s]={key:s,supply:0,saleQty:0};
+      acc2[s].supply+=r.supply; acc2[s].saleQty+=r.saleQty;
+    });
+    return Object.values(acc2).sort(function(a,b){return b.supply-a.supply;});
+  }
+
+  // 그 외(customer/month/txtype): G.data 그대로
+  return G.data.map(function(r){return {key:r.key||r.sku, supply:r.supply, saleQty:r.saleQty};});
+}
+
 function renderDonut(){
-  // 현재 상세집계 탭의 그룹 묶음을 그대로 도넛 기준으로 사용.
-  // (SKU뷰=SKU별, 시리즈뷰=시리즈별, 거래처뷰=거래처별 ...)
-  var breakData=(G.data&&G.data.length)
-    ? G.data.map(function(r){return {key:r.key||r.sku, supply:r.supply, saleQty:r.saleQty};})
-    : [];
-  // 제목에 현재 기준 표시
-  var lbl={sku:'SKU',series:'시리즈',customer:'거래처',month:'월',txtype:'거래유형'}[G.groupBy]||'';
-  var ts=document.getElementById('donut-title-s');
-  var tq=document.getElementById('donut-title-q');
-  if(ts) ts.textContent='매출액 비중'+(lbl?' ('+lbl+')':'');
-  if(tq) tq.textContent='판매수량 비중'+(lbl?' ('+lbl+')':'');
-  drawDonut(breakData,'supply','chart-donut-s');
-  drawDonut(breakData,'saleQty','chart-donut-q');
+  var dataS=resolveDonutData(G.donutByS||'auto');
+  var dataQ=resolveDonutData(G.donutByQ||'auto');
+  drawDonut(dataS,'supply','chart-donut-s');
+  drawDonut(dataQ,'saleQty','chart-donut-q');
 }
 
 function drawDonut(data,field,svgId){
@@ -1496,7 +1716,7 @@ function renderAggPeriod(){
   el.textContent='('+keys[0]+' ~ '+keys[keys.length-1]+')';
 }
 
-// renderRetInsight 제거됨 v6.2 — 반품 인사이트 패널 삭제
+// renderRetInsight 제거됨 v6.5 — 반품 인사이트 패널 삭제
 
 // ══════════════════════════════════════
 // 테이블 (SKU탭: 월별수량 동적 컬럼)
@@ -1663,8 +1883,11 @@ function renderTable(data){
     if(!yb) return null;
     var lines=yb.map(function(yd,i){
       var val='';
-      if(colKey==='saleQty') val='<span class="mn">'+fn(yd.saleQty)+'</span>';
-      else if(colKey==='supply') val=fSupply(yd.supply);
+      if(colKey==='saleQty'){
+        val='<span class="mn">'+fn(yd.saleQty)+'</span>';
+        if(G.showUnitConv&&yd.unitSaleQty!==undefined)
+          val+=' <span style="font-size:9px;color:#8b5cf6;margin-left:2px">'+fn(yd.unitSaleQty)+'</span>';
+      } else if(colKey==='supply') val=fSupply(yd.supply);
       else if(colKey==='avgPrice') val=fAvg(yd.avgPrice);
       return '<div style="line-height:1.4;white-space:nowrap">'+yrDot(i)+val+'</div>';
     });
@@ -1694,6 +1917,12 @@ function renderTable(data){
         var ycell=renderYearCell(r.key, c.k);
         if(ycell) return '<td style="text-align:right;vertical-align:top">'+ycell+'</td>';
       }
+      // 유닛 환산: saleQty 셀에 unitSaleQty 병기
+      if(G.showUnitConv && c.k==='saleQty' && r.unitSaleQty!==undefined){
+        var v=r.saleQty||0;
+        return '<td style="text-align:right;white-space:nowrap">'+fSale(v)+
+               ' <span style="font-size:9px;color:#8b5cf6">'+fn(r.unitSaleQty)+'</span></td>';
+      }
       var v=r[c.k]!==undefined?r[c.k]:0;
       var cls=(c.L?'L ':'')+(c.c?c.c(v):'');
       var html=c.k==='_pct'?c.f(v,r,tot):c.f(v,r);
@@ -1701,8 +1930,12 @@ function renderTable(data){
     }).join('')+'</tr>';
   }).join('');
 
-  var T={ship:0,ret:0,sale:0,sup:0};
-  data.forEach(function(r){T.ship+=r.shipQty;T.ret+=r.retQty;T.sale+=r.saleQty;T.sup+=r.supply;});
+  var T={ship:0,ret:0,sale:0,unitSale:0,sup:0};
+  data.forEach(function(r){
+    T.ship+=r.shipQty;T.ret+=r.retQty;T.sale+=r.saleQty;
+    T.unitSale+=(r.unitSaleQty||r.saleQty);
+    T.sup+=r.supply;
+  });
   var totAvg=T.sale>0?Math.round(T.sup/T.sale):0;
   var totRate=T.ship>0?parseFloat((Math.abs(T.ret)/T.ship*100).toFixed(1)):0;
   document.getElementById('tfoot').innerHTML='<tr>'+cols.map(function(c,i){
@@ -1714,9 +1947,15 @@ function renderTable(data){
       var ycell=renderYearCell('_TOTAL_', c.k);
       if(ycell) return '<td style="text-align:right;vertical-align:top;font-weight:700">'+ycell+'</td>';
     }
+    // tfoot saleQty: 유닛 환산 병기
+    if(c.k==='saleQty'){
+      var saleCell='<span class="mn">'+fn(T.sale)+'</span>';
+      if(G.showUnitConv)
+        saleCell+=' <span style="font-size:9px;color:#8b5cf6">'+fn(T.unitSale)+'</span>';
+      return '<td style="text-align:right">'+saleCell+'</td>';
+    }
     var fm2={shipQty:'<span class="mn">'+fn(T.ship)+'</span>',
              retQty:fRet(T.ret),
-             saleQty:'<span class="mn">'+fn(T.sale)+'</span>',
              retRate:rBadge(totRate),
              supply:fSupply(T.sup),avgPrice:fAvg(totAvg),_pct:'100.0%'};
     return '<td style="text-align:right">'+(fm2[c.k]||'')+'</td>';
@@ -1751,14 +1990,18 @@ function toggleGroupRow(tr){
       if(q===null) mcells+='<td class="mq mq-na'+sep+'">—</td>';
       else mcells+='<td class="mq'+(q===0?' mq-0':'')+sep+'">'+fn(q)+'</td>';
     });
+    // 자식행 saleQty: 유닛 환산 병기
+    var saleCell='<span class="mn">'+fn(s.saleQty)+'</span>';
+    if(G.showUnitConv&&s.unitSaleQty!==undefined)
+      saleCell+=' <span style="font-size:9px;color:#8b5cf6">'+fn(s.unitSaleQty)+'</span>';
     frag+='<tr class="grp-sub">'
       +'<td class="L"><b style="font-size:10px">'+esc(s.sku)+'</b></td>'
       +'<td class="L"><span style="color:var(--muted);font-size:10px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(s.itemName||'')+'</span></td>'
       +mcells
       +'<td style="text-align:right"><span class="mn">'+fn(s.shipQty)+'</span></td>'
       +'<td style="text-align:right">'+fRet(s.retQty)+'</td>'
-      +'<td style="text-align:right"><span class="mn">'+fn(s.saleQty)+'</span></td>'
       +'<td style="text-align:right">'+rBadge(s.retRate)+'</td>'
+      +'<td style="text-align:right">'+saleCell+'</td>'
       +'<td style="text-align:right"><span class="mn">'+fn(s.supply)+'</span></td>'
       +'<td style="text-align:right;color:var(--sky)">'+(s.avgPrice?fn(s.avgPrice):'—')+'</td>'
       +'<td style="text-align:right">'+(s.pctInGroup!=null?s.pctInGroup.toFixed(1)+'%':'—')+'</td>'
@@ -1824,7 +2067,7 @@ function setGroup(g,btn){
 }
 
 // ══════════════════════════════════════
-// 전년비교 기능 제거됨 v6.2 — 다년 조회 시 타임컬럼으로 자연스럽게 비교 가능
+// 전년비교 기능 제거됨 v6.5 — 다년 조회 시 타임컬럼으로 자연스럽게 비교 가능
 
 // ══════════════════════════════════════
 // 발주 예측
@@ -1905,11 +2148,10 @@ function fcSortBy(col){
 // ══════════════════════════════════════
 function resetAll(){
   G.sel={years:[],months:[],df:'',dt:'',primaryCat:'',tags:[],skus:[],
-         customers:[],txTypes:[],brands:[]};
+         customers:[],txTypes:[],brands:[],series:[]};
   G.unmappedSkus=[]; G.ssUrl='';
-  // 브랜드 버튼 초기화 후 필터 연동 리셋
+  // 브랜드 버튼 초기화
   document.querySelectorAll('.brand-btn').forEach(function(b){b.classList.remove('on');});
-  if(G.meta&&G.mode==='multi') onBrandChange([]);
   // 배너 숨기기
   var banner=document.getElementById('unmap-banner');
   var detail=document.getElementById('unmap-detail');
@@ -1932,19 +2174,34 @@ function resetAll(){
   document.querySelectorAll('.mdd-list input[type=checkbox],#txchk input[type=checkbox]').forEach(function(cb){cb.checked=false;});
   document.querySelectorAll('input[name=pcat]').forEach(function(r){r.checked=r.value==='';});
   document.querySelectorAll('.tag-btn').forEach(function(b){b.classList.remove('on');});
+  // 시리즈 검색 초기화
+  var ssi=document.getElementById('series-search-input');
+  if(ssi){ssi.value='';document.getElementById('series-search-tags').innerHTML='';}
   ['sel-yr','sel-sku','sel-cust'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='<span class="ph">전체</span>';});
   document.getElementById('sku-hint').textContent='';
   document.getElementById('tbl').style.display='none';
   setMsg('필터를 선택하고 <strong>조회</strong>를 누르세요.');
   ['c-ship','c-ret','c-sale','c-rate','c-rev','c-avg','c-cnt'].forEach(function(id){set(id,'—');});
+  ['c-sale-yr','c-rev-yr','c-avg-yr'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
   document.getElementById('chart-bar').innerHTML='';
   ['chart-donut-s','chart-donut-q'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
   document.getElementById('fc-section').style.display='none';
   hideSkuDetail();
   var fb=document.getElementById('btn-fc');if(fb){fb.classList.remove('on');fb.textContent='발주예측 보기';}
-  // 전년비교 버튼 제거됨 v6.2
-  onPcatChange('');
-  if(G.meta)presetCurrentYear(G.meta.years);
+  // 전년비교 버튼 제거됨 v6.5
+  // 필터 목록 복원: 현재 로드된 메타 기준으로 카테고리/태그/SKU 다시 채움
+  if(G.meta){
+    if(G.mode==='multi'){
+      onBrandChange([]);  // 멀티: 브랜드 미선택 상태로
+    } else {
+      // SENA: 전체 목록으로 복원
+      buildPcatRadio(G.meta.primaryCats||[]);
+      buildTagGrid(G.meta.tags||[]);
+      buildSkuDD(G.meta.categoryMap||{}, null);
+      document.getElementById('sku-hint').textContent='';
+    }
+    presetCurrentYear(G.meta.years);
+  }
 }
 
 function doCSV(){
