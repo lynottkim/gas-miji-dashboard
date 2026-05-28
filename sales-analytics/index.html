@@ -107,7 +107,7 @@ input[type=number],.lval,.val,.rb{font-family:var(--font-num)}
 #content{flex:1;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-width:0}
 
 /* 요약 카드 */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
 .card{background:var(--panel);border:1px solid var(--bd);border-radius:var(--r);
       padding:10px 12px;box-shadow:var(--sh);position:relative}
 .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r) 0 0 var(--r)}
@@ -229,7 +229,7 @@ tfoot td.L{text-align:left}
 @keyframes sp{to{transform:rotate(360deg)}}
 
 /* 비중 바 */
-/* bar-w/bg/f/p 제거됨 v6.5 — 비중은 숫자만 표시 */
+/* bar-w/bg/f/p 제거됨 v6.6 — 비중은 숫자만 표시 */
 
 /* 반품율·트렌드 뱃지 */
 .rb{display:inline-block;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:600}
@@ -522,7 +522,7 @@ tfoot td.L{text-align:left}
             <button class="donut-tab" data-field="supply" data-donut="s" data-by="sku" onclick="setDonutBy('s',this)">SKU</button>
           </span>
         </div>
-        <svg id="chart-donut-s" width="100%" height="160" style="display:block;overflow:visible"></svg>
+        <svg id="chart-donut-s" width="100%" height="220" style="display:block;overflow:visible"></svg>
       </div>
       <div class="cpanel">
         <div class="ctitle" style="gap:4px">
@@ -534,7 +534,7 @@ tfoot td.L{text-align:left}
             <button class="donut-tab" data-field="saleQty" data-donut="q" data-by="sku" onclick="setDonutBy('q',this)">SKU</button>
           </span>
         </div>
-        <svg id="chart-donut-q" width="100%" height="160" style="display:block;overflow:visible"></svg>
+        <svg id="chart-donut-q" width="100%" height="220" style="display:block;overflow:visible"></svg>
       </div>
     </div>
 
@@ -569,7 +569,7 @@ tfoot td.L{text-align:left}
       </div>
     </div>
 
-    <!-- 반품 인사이트 패널 제거됨 (v6.5) -->
+    <!-- 반품 인사이트 패널 제거됨 (v6.6) -->
 
     <!-- 발주 예측 버튼 -->
     <div id="fc-btn-wrap">
@@ -1105,7 +1105,6 @@ function updateSkusBySeries(){
 // ── 유닛 환산 토글 (SENA 전용) ──────────────────────────────
 function toggleUnitConv(btn){
   G.showUnitConv=!G.showUnitConv;
-  // OFF: 보라 테두리+보라 텍스트 (미리보기), ON: 보라 채움+흰 텍스트 (활성)
   if(G.showUnitConv){
     btn.style.background='#8b5cf6';
     btn.style.color='#fff';
@@ -1115,8 +1114,7 @@ function toggleUnitConv(btn){
     btn.style.color='#8b5cf6';
     btn.style.borderColor='#8b5cf6';
   }
-  if(G.data.length) renderTable(G.data);
-  if(G.data.length) renderCards(G.data);
+  if(G.data.length){ renderTable(G.data); renderCards(G.data); renderDonut(); }
 }
 
 function buildSkuDD(catMap,filterSkus){
@@ -1248,7 +1246,7 @@ function runQuery(){
       renderUnmapBanner(G.unmappedSkus, G.ssUrl);
       setMsg(''); document.getElementById('tbl').style.display='';
       updateFcBtn();
-      // 전년비교 기능 제거됨 v6.5
+      // 전년비교 기능 제거됨 v6.6
     })
     .withFailureHandler(function(e){dbg('조회 실패: '+e.message,'err');setMsg('오류: '+e.message);})
     .getFilteredData(filters);
@@ -1603,69 +1601,73 @@ function setDonutBy(donutId, btn){
 // 도넛 기준 결정: auto면 현재 groupBy 기반, 아니면 명시된 기준
 function resolveDonutData(byMode){
   if(!G.data||!G.data.length) return [];
-  // auto: 현재 groupBy에 가장 맞는 기준으로 자동 결정
   var effectiveBy = byMode;
   if(byMode==='auto'){
-    // 시리즈뷰에서 시리즈가 1개 이하면 SKU로 자동 전환 (더 의미있음)
     if(G.groupBy==='series'&&G.data.length<=3) effectiveBy='sku';
     else effectiveBy=G.groupBy;
   }
 
-  // SKU 기준: G.skuAgg (뷰와 무관하게 SKU별 전체 집계)
-  if(effectiveBy==='sku'){
-    if(G.skuAgg&&G.skuAgg.length)
-      return G.skuAgg.map(function(r){
-        return {key:r.sku||r.key, supply:r.supply, saleQty:r.saleQty};
-      });
-    // skuAgg 없으면 G.data에서 sku 키로
-    return G.data.map(function(r){return {key:r.sku||r.key, supply:r.supply, saleQty:r.saleQty};});
+  function row2d(r){
+    return {key:r.sku||r.key, supply:r.supply,
+            saleQty:r.saleQty, unitSaleQty:r.unitSaleQty||r.saleQty};
   }
 
-  // 주카테고리 기준: G.catBreak (백엔드에서 직접 집계)
+  if(effectiveBy==='sku'){
+    if(G.skuAgg&&G.skuAgg.length) return G.skuAgg.map(row2d);
+    return G.data.map(row2d);
+  }
+
   if(effectiveBy==='primaryCat'){
     if(G.catBreak&&G.catBreak.length)
       return G.catBreak.map(function(r){
-        return {key:r.key||r.primaryCat||'기타', supply:r.supply, saleQty:r.saleQty};
+        return {key:r.key||r.primaryCat||'기타', supply:r.supply,
+                saleQty:r.saleQty, unitSaleQty:r.unitSaleQty||r.saleQty};
       });
-    // catBreak 없으면 skuAgg/data에서 재집계
     var src=G.skuAgg&&G.skuAgg.length?G.skuAgg:G.data;
     var acc={};
     src.forEach(function(r){
       var cat=(G.meta&&G.meta.skuMeta&&G.meta.skuMeta[r.sku||r.key])
               ?G.meta.skuMeta[r.sku||r.key].primaryCat:'기타';
       if(!cat) cat='기타';
-      if(!acc[cat]) acc[cat]={key:cat,supply:0,saleQty:0};
+      if(!acc[cat]) acc[cat]={key:cat,supply:0,saleQty:0,unitSaleQty:0};
       acc[cat].supply+=r.supply; acc[cat].saleQty+=r.saleQty;
+      acc[cat].unitSaleQty+=(r.unitSaleQty||r.saleQty);
     });
     return Object.values(acc).sort(function(a,b){return b.supply-a.supply;});
   }
 
-  // 시리즈 기준
   if(effectiveBy==='series'){
     if(G.groupBy==='series')
-      return G.data.map(function(r){return {key:r.key, supply:r.supply, saleQty:r.saleQty};});
-    // 현재 뷰가 시리즈 아니면 skuAgg에서 시리즈 재집계
+      return G.data.map(function(r){
+        return {key:r.key, supply:r.supply,
+                saleQty:r.saleQty, unitSaleQty:r.unitSaleQty||r.saleQty};
+      });
     var src2=G.skuAgg&&G.skuAgg.length?G.skuAgg:G.data;
     var acc2={};
     src2.forEach(function(r){
       var s=(G.meta&&G.meta.skuMeta&&G.meta.skuMeta[r.sku||r.key])
              ?G.meta.skuMeta[r.sku||r.key].series:'기타';
       if(!s) s='기타';
-      if(!acc2[s]) acc2[s]={key:s,supply:0,saleQty:0};
+      if(!acc2[s]) acc2[s]={key:s,supply:0,saleQty:0,unitSaleQty:0};
       acc2[s].supply+=r.supply; acc2[s].saleQty+=r.saleQty;
+      acc2[s].unitSaleQty+=(r.unitSaleQty||r.saleQty);
     });
     return Object.values(acc2).sort(function(a,b){return b.supply-a.supply;});
   }
 
-  // 그 외(customer/month/txtype): G.data 그대로
-  return G.data.map(function(r){return {key:r.key||r.sku, supply:r.supply, saleQty:r.saleQty};});
+  return G.data.map(function(r){
+    return {key:r.key||r.sku, supply:r.supply,
+            saleQty:r.saleQty, unitSaleQty:r.unitSaleQty||r.saleQty};
+  });
 }
 
 function renderDonut(){
   var dataS=resolveDonutData(G.donutByS||'auto');
   var dataQ=resolveDonutData(G.donutByQ||'auto');
   drawDonut(dataS,'supply','chart-donut-s');
-  drawDonut(dataQ,'saleQty','chart-donut-q');
+  // 판매수량 도넛: 유닛환산 ON이면 unitSaleQty 기준
+  var qField=G.showUnitConv?'unitSaleQty':'saleQty';
+  drawDonut(dataQ,qField,'chart-donut-q');
 }
 
 function drawDonut(data,field,svgId){
@@ -1673,10 +1675,11 @@ function drawDonut(data,field,svgId){
   if(!data||!data.length) return;
   var total=data.reduce(function(s,d){return s+(d[field]||0);},0); if(!total) return;
   var W=svg.parentElement.clientWidth-8;
-  var top=data.slice(0,6);
-  if(data.length>6){ var ov=data.slice(6).reduce(function(s,d){return s+(d[field]||0);},0); if(ov>0) top.push({key:'기타',supply:ov,saleQty:ov}); }
-  var CX=Math.min(W*0.32,72),CY=74,R=Math.min(CX-8,56),IR=Math.round(R*0.52);
-  var COLS=['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#64748b'];
+  var H=220;
+  var top=data.slice(0,7);
+  if(data.length>7){ var ov=data.slice(7).reduce(function(s,d){return s+(d[field]||0);},0); if(ov>0) top.push({key:'기타',supply:ov,saleQty:ov}); }
+  var CX=Math.min(W*0.32,88),CY=92,R=Math.min(CX-8,72),IR=Math.round(R*0.52);
+  var COLS=['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#64748b','#f43f5e'];
   var angle=-Math.PI/2;
   top.forEach(function(d,i){
     var v=d[field]||0; if(!v) return;
@@ -1688,17 +1691,17 @@ function drawDonut(data,field,svgId){
     svg.appendChild(mkSVG('path',{
       d:'M'+xi1+' '+yi1+' L'+x1+' '+y1+' A'+R+' '+R+' 0 '+(span>Math.PI?1:0)+' 1 '+x2+' '+y2+' L'+xi2+' '+yi2+' A'+IR+' '+IR+' 0 '+(span>Math.PI?1:0)+' 0 '+xi1+' '+yi1+' Z',
       fill:COLS[i%COLS.length],stroke:'#fff','stroke-width':'1.5',opacity:'0.9'}));
-    if(pct>0.08){ var mid=angle+span/2;
-      var lt=mkSVG('text',{x:CX+(R+11)*Math.cos(mid),y:CY+(R+11)*Math.sin(mid),'text-anchor':'middle','dominant-baseline':'middle','font-size':'8',fill:'#1e293b','font-weight':'600'});
+    if(pct>0.06){ var mid=angle+span/2;
+      var lt=mkSVG('text',{x:CX+(R+13)*Math.cos(mid),y:CY+(R+13)*Math.sin(mid),'text-anchor':'middle','dominant-baseline':'middle','font-size':'8',fill:'#1e293b','font-weight':'600'});
       lt.textContent=(pct*100).toFixed(1)+'%'; svg.appendChild(lt); }
     angle+=span;
   });
-  var LX=CX+R+10,LY=8;
+  var LX=CX+R+14,LY=10;
   top.forEach(function(d,i){
-    var yy=LY+i*17; if(yy>148) return;
-    svg.appendChild(mkSVG('rect',{x:LX,y:yy,width:7,height:7,rx:2,fill:COLS[i%COLS.length]}));
-    var lt=mkSVG('text',{x:LX+10,y:yy+7,'font-size':'8',fill:'#1e293b'});
-    var lbl=d.key.length>11?d.key.slice(0,11)+'…':d.key;
+    var yy=LY+i*20; if(yy>H-12) return;
+    svg.appendChild(mkSVG('rect',{x:LX,y:yy,width:8,height:8,rx:2,fill:COLS[i%COLS.length]}));
+    var lt=mkSVG('text',{x:LX+11,y:yy+8,'font-size':'9',fill:'#1e293b'});
+    var lbl=d.key.length>13?d.key.slice(0,13)+'…':d.key;
     lt.textContent=esc(lbl)+' '+(((d[field]||0)/total)*100).toFixed(1)+'%'; svg.appendChild(lt);
   });
 }
@@ -1716,7 +1719,7 @@ function renderAggPeriod(){
   el.textContent='('+keys[0]+' ~ '+keys[keys.length-1]+')';
 }
 
-// renderRetInsight 제거됨 v6.5 — 반품 인사이트 패널 삭제
+// renderRetInsight 제거됨 v6.6 — 반품 인사이트 패널 삭제
 
 // ══════════════════════════════════════
 // 테이블 (SKU탭: 월별수량 동적 컬럼)
@@ -1830,7 +1833,8 @@ function renderTable(data){
     if(i===0) w='140px';
     else if(i===1) w='190px';
     else if(c.mk) w='36px';
-    else if(c.k==='shipQty'||c.k==='retQty'||c.k==='saleQty') w='62px';
+    else if(c.k==='shipQty'||c.k==='retQty') w='62px';
+    else if(c.k==='saleQty') w=G.showUnitConv?'116px':'62px';  // 유닛환산 ON: 두 숫자 넉넉하게
     else if(c.k==='retRate') w='54px';
     else if(c.k==='supply') w='82px';
     else if(c.k==='avgPrice') w='70px';
@@ -1852,6 +1856,14 @@ function renderTable(data){
     var ic=G.sortCol===c.k?(G.sortDir<0?'▼':'▲'):'⇅';
     var sortable=(c.k.charAt(0)!=='_');
     var onclick=sortable?(' onclick="sortBy(\''+c.k+'\')"'):'';
+    // 유닛환산 ON 시 saleQty 헤더를 두 칸으로
+    if(G.showUnitConv && c.k==='saleQty'){
+      return '<th'+onclick+' style="text-align:right;padding:0">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
+        +'<span style="text-align:right;padding:5px 4px">판매수량</span>'
+        +'<span style="text-align:right;padding:5px 4px;color:#8b5cf6;border-left:1px solid #ede9fe">유닛</span>'
+        +'</div></th>';
+    }
     return '<th class="'+(c.L?'L':'')+'"'+onclick+' style="text-align:'+(c.L?'left':'right')+'">'
            +c.l+(sortable?' <span style="font-size:9px;color:#94a3b8">'+ic+'</span>':'')+'</th>';
   }).join('')+'</tr>';
@@ -1917,11 +1929,12 @@ function renderTable(data){
         var ycell=renderYearCell(r.key, c.k);
         if(ycell) return '<td style="text-align:right;vertical-align:top">'+ycell+'</td>';
       }
-      // 유닛 환산: saleQty 셀에 unitSaleQty 병기
+      // 유닛 환산: saleQty 셀을 두 숫자 각각 우정렬로 분리
       if(G.showUnitConv && c.k==='saleQty' && r.unitSaleQty!==undefined){
-        var v=r.saleQty||0;
-        return '<td style="text-align:right;white-space:nowrap">'+fSale(v)+
-               ' <span style="font-size:9px;color:#8b5cf6">'+fn(r.unitSaleQty)+'</span></td>';
+        return '<td style="padding:0"><div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
+          +'<span style="text-align:right;padding:5px 4px;font-variant-numeric:tabular-nums">'+fSale(r.saleQty||0)+'</span>'
+          +'<span style="text-align:right;padding:5px 4px;color:#8b5cf6;font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;border-left:1px solid #ede9fe">'+fn(r.unitSaleQty)+'</span>'
+          +'</div></td>';
       }
       var v=r[c.k]!==undefined?r[c.k]:0;
       var cls=(c.L?'L ':'')+(c.c?c.c(v):'');
@@ -1947,12 +1960,15 @@ function renderTable(data){
       var ycell=renderYearCell('_TOTAL_', c.k);
       if(ycell) return '<td style="text-align:right;vertical-align:top;font-weight:700">'+ycell+'</td>';
     }
-    // tfoot saleQty: 유닛 환산 병기
+    // tfoot saleQty: 유닛 환산 두 칸 분리
     if(c.k==='saleQty'){
-      var saleCell='<span class="mn">'+fn(T.sale)+'</span>';
-      if(G.showUnitConv)
-        saleCell+=' <span style="font-size:9px;color:#8b5cf6">'+fn(T.unitSale)+'</span>';
-      return '<td style="text-align:right">'+saleCell+'</td>';
+      if(G.showUnitConv){
+        return '<td style="padding:0"><div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
+          +'<span style="text-align:right;padding:5px 4px;font-weight:700;font-variant-numeric:tabular-nums"><span class="mn">'+fn(T.sale)+'</span></span>'
+          +'<span style="text-align:right;padding:5px 4px;color:#8b5cf6;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;border-left:1px solid #ede9fe">'+fn(T.unitSale)+'</span>'
+          +'</div></td>';
+      }
+      return '<td style="text-align:right"><span class="mn">'+fn(T.sale)+'</span></td>';
     }
     var fm2={shipQty:'<span class="mn">'+fn(T.ship)+'</span>',
              retQty:fRet(T.ret),
@@ -1990,10 +2006,16 @@ function toggleGroupRow(tr){
       if(q===null) mcells+='<td class="mq mq-na'+sep+'">—</td>';
       else mcells+='<td class="mq'+(q===0?' mq-0':'')+sep+'">'+fn(q)+'</td>';
     });
-    // 자식행 saleQty: 유닛 환산 병기
-    var saleCell='<span class="mn">'+fn(s.saleQty)+'</span>';
-    if(G.showUnitConv&&s.unitSaleQty!==undefined)
-      saleCell+=' <span style="font-size:9px;color:#8b5cf6">'+fn(s.unitSaleQty)+'</span>';
+    // 자식행 saleQty: 유닛 환산 두 칸 분리
+    var saleCell;
+    if(G.showUnitConv&&s.unitSaleQty!==undefined){
+      saleCell='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
+        +'<span style="text-align:right;font-variant-numeric:tabular-nums">'+fn(s.saleQty)+'</span>'
+        +'<span style="text-align:right;color:#8b5cf6;font-size:9px;font-variant-numeric:tabular-nums;border-left:1px solid #ede9fe;padding-left:3px">'+fn(s.unitSaleQty)+'</span>'
+        +'</div>';
+    } else {
+      saleCell='<span class="mn">'+fn(s.saleQty)+'</span>';
+    }
     frag+='<tr class="grp-sub">'
       +'<td class="L"><b style="font-size:10px">'+esc(s.sku)+'</b></td>'
       +'<td class="L"><span style="color:var(--muted);font-size:10px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(s.itemName||'')+'</span></td>'
@@ -2067,7 +2089,7 @@ function setGroup(g,btn){
 }
 
 // ══════════════════════════════════════
-// 전년비교 기능 제거됨 v6.5 — 다년 조회 시 타임컬럼으로 자연스럽게 비교 가능
+// 전년비교 기능 제거됨 v6.6 — 다년 조회 시 타임컬럼으로 자연스럽게 비교 가능
 
 // ══════════════════════════════════════
 // 발주 예측
@@ -2188,7 +2210,7 @@ function resetAll(){
   document.getElementById('fc-section').style.display='none';
   hideSkuDetail();
   var fb=document.getElementById('btn-fc');if(fb){fb.classList.remove('on');fb.textContent='발주예측 보기';}
-  // 전년비교 버튼 제거됨 v6.5
+  // 전년비교 버튼 제거됨 v6.6
   // 필터 목록 복원: 현재 로드된 메타 기준으로 카테고리/태그/SKU 다시 채움
   if(G.meta){
     if(G.mode==='multi'){
